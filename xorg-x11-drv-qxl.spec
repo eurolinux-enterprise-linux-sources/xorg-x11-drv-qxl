@@ -19,7 +19,7 @@ Name:      xorg-x11-drv-qxl
 # This is hack since a driver got built with the version number 0.0.20.f14b
 Version:   0.1.0
 
-Release:   7%{?gver}%{?dist}
+Release:   8%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 #Source0: %{tarball}-%{gitdate}.tar.bz2
@@ -38,9 +38,9 @@ Patch9:     0009-qxl_driver-check_crtc-handle-qxl-crtcs-NULL.patch
 Patch10:    0010-qxl_driver-simplify-calling-qxl_update_monitors_conf.patch
 Patch11:    0011-qxl_driver-monitors_config-adjust-to-memory-remap.patch
 Patch12:    0001-compat-driver-Make-sure-to-initialize-the-VGA-functi.patch
-
 Patch13:    0013-Establish-a-preferred-default-of-1024x768-correctly.patch
 Patch14:    0014-More-correctly-signal-that-we-only-want-the-first-he.patch
+Patch15:    enable-resizable-surface0.patch
 
 License:   MIT
 Group:     User Interface/X Hardware Support
@@ -90,6 +90,7 @@ XSpice is both an X and a Spice server.
 %patch12 -p1
 %patch13 -p1
 %patch14 -p1
+%patch15 -p1
 
 autoreconf -f -i
 
@@ -138,6 +139,9 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Mon May 12 2014 Soren Sandmann <ssp@redhat.com> 0.1.1-11
+- Enable resizing of surface0 -- bug 1076728
+
 * Fri Aug 2 2013 Alon Levy <alevy@redhat.com> 0.1.0-7
 - bump release since previous build got deleted.
   Resolves: #951000
