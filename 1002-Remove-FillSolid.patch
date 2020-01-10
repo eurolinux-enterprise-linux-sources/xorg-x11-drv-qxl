@@ -1,0 +1,64 @@
+From 9063105526f46613ebb94c8f420ee5d65434ae50 Mon Sep 17 00:00:00 2001
+From: Marc-Andre Lureau <marcandre.lureau@redhat.com>
+Date: Fri, 5 Sep 2014 12:29:46 +0200
+Subject: [PATCH 2/2] Remove FillSolid
+
+Some FillSolid implementations are off-screen, and may
+crash the Spice server. It doesn't seem necessary to
+implement it, thanks to fbPolyFillRect fallback.
+---
+ src/compat/compat-qxl_driver.c |   38 --------------------------------------
+ 1 files changed, 0 insertions(+), 38 deletions(-)
+
+diff --git a/src/compat/compat-qxl_driver.c b/src/compat/compat-qxl_driver.c
+index 052272b..c4f88ec 100644
+--- a/src/compat/compat-qxl_driver.c
++++ b/src/compat/compat-qxl_driver.c
+@@ -693,44 +693,6 @@ compat_qxl_poly_fill_rect (DrawablePtr pDrawable,
+ 		 int	     nrect,
+ 		 xRectangle *prect)
+ {
+-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pDrawable->pScreen);
+-    compat_qxl_screen_t *compat_qxl = pScrn->driverPrivate;
+-    PixmapPtr pPixmap;
+-    int xoff, yoff;
+-
+-    if ((pPixmap = get_window_pixmap (pDrawable, &xoff, &yoff))	&&
+-	pGC->fillStyle == FillSolid				&&
+-	pGC->alu == GXcopy					&&
+-	(unsigned int)pGC->planemask == FB_ALLONES)
+-    {
+-	RegionPtr pReg = RECTS_TO_REGION (pScreen, nrect, prect, CT_UNSORTED);
+-	RegionPtr pClip = fbGetCompositeClip (pGC);
+-	BoxPtr pBox;
+-	int nbox;
+-	
+-	REGION_TRANSLATE(pScreen, pReg, xoff, yoff);
+-	REGION_INTERSECT(pScreen, pReg, pClip, pReg);
+-
+-	pBox = REGION_RECTS (pReg);
+-	nbox = REGION_NUM_RECTS (pReg);
+-
+-	while (nbox--)
+-	{
+-	    struct compat_qxl_rect qrect;
+-
+-	    qrect.left = pBox->x1;
+-	    qrect.right = pBox->x2;
+-	    qrect.top = pBox->y1;
+-	    qrect.bottom = pBox->y2;
+-
+-	    submit_fill (compat_qxl, &qrect, pGC->fgPixel);
+-
+-	    pBox++;
+-	}
+-
+-	REGION_DESTROY (pScreen, pReg);
+-    }
+-    
+     fbPolyFillRect (pDrawable, pGC, nrect, prect);
+ }
+ 
+-- 
+1.7.1
+

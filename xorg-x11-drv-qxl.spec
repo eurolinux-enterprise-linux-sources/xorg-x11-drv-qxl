@@ -4,57 +4,67 @@
 
 # Xspice is x86_64 only since spice-server is x86_64 only
 %ifarch x86_64
-%define with_xspice 0%{?fedora} || 0%{?rhel} > 6
+%define with_xspice (0%{?fedora} || 0%{?rhel} > 6)
 %else
 %define with_xspice 0
 %endif
 
+#% global gitdate 20130703
+%global gitversion 8b03ec16
+
 %if 0%{?gitdate}
+
 %define gver .%{gitdate}git%{gitversion}
 %endif
 
 Summary:   Xorg X11 qxl video driver
 Name:      xorg-x11-drv-qxl
 
-# This is hack since a driver got built with the version number 0.0.20.f14b
-Version:   0.1.0
+Version:   0.1.1
 
-Release:   8%{?gver}%{?dist}
+Release:   15%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
+
 #Source0: %{tarball}-%{gitdate}.tar.bz2
+Patch1:    qxl-kms-disable-composite.patch
+
+# This should go away with a spice server containing 1d18b7e98ab268c755933061d77ccc7a981815e2
+Patch2:        0005-spiceqxl_display-only-use-qxl-interface-after-it-is-.patch
+
+Patch3: no-surfaces-kms.patch
+Patch4: 0001-worst-hack-of-all-time-to-qxl-driver.patch
+
+# Fixes for running with Xorg suid, which is the only way we ship in fedora
+Patch6: 0006-spiceqxl_spice_server-no-need-to-call-spice_server_s.patch
+Patch7: 0007-xspice-chown-both-files-used-by-vdagent-for-suid-Xor.patch
+Patch8: 0008-Xspice-cleanup-non-regular-files-too.patch
+Patch9: 0009-Xspice-fix-cleanup-when-some-processes-are-already-d.patch
+Patch10: 0010-Xspice-cleanup-vdagent-files.patch
+
+Patch11: disable-surfaces.patch
+Patch12: enable-resizable-surface0.patch
+
 # Support for old revision 1 qxl device (which won't go upstream)
-
-Patch1:    0001-Add-old-driver-in-as-a-compatibility-layer.patch
-Patch2:    0002-Link-in-the-compat-driver-various-renamings.patch
-Patch3:    0003-compat-bump-to-new-server-API-changes.patch
-Patch4:	   0001-Add-new-DebugRenderFallbacks-option.patch
-Patch5:	   0002-When-DebugRenderFallbacks-is-turned-on-print-debug-s.patch
-Patch6:    disable-surfaces.patch
-
-Patch7:     0007-qxl_driver-remove-unused-enum-ROPDescriptor.patch
-Patch8:     0008-qxl_pre_init-fix-calculation-of-available-video-memo.patch
-Patch9:     0009-qxl_driver-check_crtc-handle-qxl-crtcs-NULL.patch
-Patch10:    0010-qxl_driver-simplify-calling-qxl_update_monitors_conf.patch
-Patch11:    0011-qxl_driver-monitors_config-adjust-to-memory-remap.patch
-Patch12:    0001-compat-driver-Make-sure-to-initialize-the-VGA-functi.patch
-Patch13:    0013-Establish-a-preferred-default-of-1024x768-correctly.patch
-Patch14:    0014-More-correctly-signal-that-we-only-want-the-first-he.patch
-Patch15:    enable-resizable-surface0.patch
+Patch1001: 1001-Add-QXL-revision-1-compat-support.patch
+Patch1002: 1002-Remove-FillSolid.patch
 
 License:   MIT
 Group:     User Interface/X Hardware Support
 
-ExcludeArch: s390 s390x %{?rhel:ppc ppc64}
+ExcludeArch: s390 s390x ppc ppc64
 
 BuildRequires: pkgconfig
-BuildRequires: xorg-x11-server-devel >= 1.13.0-1
-BuildRequires: spice-protocol >= 0.12.0
+BuildRequires: xorg-x11-server-devel >= 1.1.0-1
+BuildRequires: spice-protocol >= 0.12.1
+BuildRequires: libdrm-devel >= 2.4.46-1
+
 %ifarch x86_64
 BuildRequires: spice-server-devel >= 0.8.0
 %endif
 BuildRequires: glib2-devel
 BuildRequires: libtool
+BuildRequires: libudev-devel
 
 Requires: Xorg %(xserver-sdk-abi-requires ansic)
 Requires: Xorg %(xserver-sdk-abi-requires videodrv)
@@ -76,11 +86,11 @@ XSpice is both an X and a Spice server.
 
 %prep
 %setup -q -n %{tarball}-%{?gitdate:%{gitdate}}%{!?gitdate:%{version}}
+
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
-%patch5 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
@@ -88,13 +98,12 @@ XSpice is both an X and a Spice server.
 %patch10 -p1
 %patch11 -p1
 %patch12 -p1
-%patch13 -p1
-%patch14 -p1
-%patch15 -p1
 
-autoreconf -f -i
+%patch1001 -p1
+%patch1002 -p1
 
 %build
+autoreconf -f -i
 %if %{with_xspice}
 %define enable_xspice --enable-xspice
 %endif
@@ -139,39 +148,112 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Thu Sep 11 2014 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-15
+- Readd the resizable surface patch
+  Resolves: rhbz#1076728
+
+* Fri Sep  5 2014 Marc-Andre Lureau <marcandre.lureau@redhat.com>  0.1.1-14
+- Bring back QXL revision=1 compat code --bug 1078390
+
+* Mon Aug 11 2014 Marc-Andre Lureau <marcandre.lureau@redhat.com>  0.1.1-13
+- Revert last ssp changes -- bug 1076728
+
+* Mon May 12 2014 Soren Sandmann <ssp@redhat.com>  0.1.1-12
+- Bump release
+
 * Mon May 12 2014 Soren Sandmann <ssp@redhat.com> 0.1.1-11
 - Enable resizing of surface0 -- bug 1076728
 
-* Fri Aug 2 2013 Alon Levy <alevy@redhat.com> 0.1.0-7
-- bump release since previous build got deleted.
-  Resolves: #951000
+* Tue Apr 29 2014 Adam Jackson <ajax@redhat.com> 0.1.1-10
+- Fix arch list for RHEL6
 
-* Fri Aug 2 2013 Alon Levy <alevy@redhat.com> 0.1.0-6
-- Fix hard coded 1024x768 default mode, breaking xorg.conf directives
-  Resolves: #951000
+* Tue Mar 11 2014 Soren Sandmann <ssp@redhat.com> 0.1.1-9
+- Disable surfaces by default -- bug 1070984 
 
-* Fri Aug 2 2013 Soren Sandmann <ssp@redhat.com> 0.1.0-5
-- compat driver: Initialize VGA functions
-  Related: #929037
+* Tue Jan 14 2014 Dave Airlie <airlied@redhat.com> 0.1.1-8
+- grab patches from F20 - fix dates
 
-* Sun Jan 20 2013 Uri Lublin <uril@redhat.com> 0.1.0-4
-- Adjust monitors_config to memory remap
-  Resolves: #883578
+* Mon Jan 13 2014 Adam Jackson <ajax@redhat.com> - 0.1.1-7
+- 1.15 ABI rebuild
 
-* Wed Jan 16 2013 Soren Sandmann <ssp@redhat.com> 0.1.0-3
-- Add patches to add DebugRenderFallbacks option
-- Add patch to disable surfaces
+* Tue Dec 17 2013 Adam Jackson <ajax@redhat.com> - 0.1.1-6
+- 1.15RC4 ABI rebuild
 
-* Fri Sep 28 2012 Adam Jackson <ajax@redhat.com> 0.1.0-2
-- Fix xserver BuildRequires for 6.4
+* Wed Nov 20 2013 Adam Jackson <ajax@redhat.com> - 0.1.1-5
+- 1.15RC2 ABI rebuild
 
-* Tue Sep 25 2012 Soren Sandmann <ssp@redhat.com> 0.1.0-1
-- Update to upstream version 0.1.0; bz #835249
+* Wed Nov 06 2013 Adam Jackson <ajax@redhat.com> - 0.1.1-4
+- 1.15RC1 ABI rebuild
+
+* Fri Oct 25 2013 Adam Jackson <ajax@redhat.com> - 0.1.1-3
+- ABI rebuild
+
+* Thu Oct 24 2013 Adam Jackson <ajax@redhat.com> 0.1.1-2
+- Drop qxl rev 1 patches
+
+* Mon Oct 21 2013 Alon Levy <alevy@redhat.com> - 0.1.1-1
+- New upstream release
+- Fixes to said release to work with suid issues (upstream)
+
+* Sun Aug 04 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.1.1-0.14.20130514git77a1594
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
+* Wed Jul 03 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.13
+- resnapshot upstream to pick up a few patches
+- add userspace patch to use new kernel hotspot interface (#974662)
+
+* Wed Jul 03 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.12
+- add support for udev event catching - for dynamic resize from kernel
+
+* Tue Jul 02 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.11
+- helps if you apply the patch (#978612)
+
+* Sat Jun 29 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.10
+- fix another resize issue due (#978612)
+
+* Tue Jun 18 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.9
+- disable composite/a8 surfaces for KMS (#974198)
+
+* Tue May 28 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.8
+- fix 32-bit (#965101)
+
+* Tue May 14 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.7
+- resnapshot - fixes randr under KMS
+
+* Tue May 14 2013 Daniel Mach <dmach@redhat.com> - 0.1.1-0.6
+- Fix with_xspice macro definition (airlied - cherrypick)
+
+* Tue May 7 2013 Alon Levy <alevy@redhat.com> 0.1.1-0.5
+- Add Xspice fixes and dfps (upstream a474a71..77a1594)
+
+* Tue Mar 19 2013 Adam Jackson <ajax@redhat.com> 0.1.1-0.4
+- Less RHEL customization
+
+* Tue Mar 12 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.3.20130312gita474a71
+- add KMS support to userspace driver
+
+* Thu Mar 07 2013 Peter Hutterer <peter.hutterer@redhat.com> - 0.1.1-0.2.20130306git9d45cc5
+- ABI rebuild
+
+* Wed Mar 06 2013 Dave Airlie <airlied@redhat.com> 0.1.1-0.1
+- bump to get UMS bo abstraction in - kms coming soon
+
+* Fri Feb 15 2013 Peter Hutterer <peter.hutterer@redhat.com> - 0.1.0-4
+- ABI rebuild
+
+* Fri Feb 15 2013 Peter Hutterer <peter.hutterer@redhat.com> - 0.1.0-3
+- ABI rebuild
+
+* Thu Jan 10 2013 Adam Jackson <ajax@redhat.com> - 0.1.0-2
+- ABI rebuild
+
+* Sat Sep 22 2012 Soren Sandmann <ssp@redhat.com> 0.1.0-1
+- Upstream 0.1.0
 
 * Wed Aug 29 2012 Adam Jackson <ajax@redhat.com> 0.0.22-6
 - Exclude Xspice from RHEL6 builds
 
-* Thu Aug 26 2012 Alon Levy <alevy@redhat.com>
+* Sun Aug 26 2012 Alon Levy <alevy@redhat.com>
 - fix uxa_xorg_enable_disable_fb_access - 0.0.22-5.20120718gitde6620788 (#844463)
 
 * Thu Aug 23 2012 Alon Levy <alevy@redhat.com>
@@ -214,10 +296,10 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 * Wed Nov 09 2011 Adam Jackson <ajax@redhat.com> - 0.0.21-9
 - ABI rebuild
 
-* Wed Oct 28 2011 Soren Sandmann <ssp@redhat.com> - 0.0.21-8
+* Fri Oct 28 2011 Soren Sandmann <ssp@redhat.com> - 0.0.21-8
 - Bump release
 
-* Wed Oct 28 2011 Soren Sandmann <ssp@redhat.com> - 0.0.21-7
+* Fri Oct 28 2011 Soren Sandmann <ssp@redhat.com> - 0.0.21-7
 - Add patch to translate access regions according to drawable offset
   Bug 731245.
 
