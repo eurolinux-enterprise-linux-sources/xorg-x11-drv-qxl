@@ -1,0 +1,36 @@
+From 8f8b8d9b09e21c3d8f10027acd20827148def8d4 Mon Sep 17 00:00:00 2001
+From: Marc-Andre Lureau <marcandre.lureau@redhat.com>
+Date: Sat, 11 Oct 2014 21:29:35 +0200
+Subject: [PATCH] Check qxl_download_box() arguments
+
+Sending empty region is invalid and the server returns an error (this
+can be triggered by typing space in xfig)
+
+Without the previous patch, error was ignored and the driver would enter
+an infinite loop.
+
+Assert on valid arguments, and return early if the given region is empty.
+
+Fixes:
+http://bugzilla.redhat.com/1151559
+(cherry picked from commit 04f2a5096718b462ca7a38973fdb72df32b21850)
+---
+ src/qxl_surface.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/qxl_surface.c b/src/qxl_surface.c
+index 561b416..450ef4c 100644
+--- a/src/qxl_surface.c
++++ b/src/qxl_surface.c
+@@ -140,6 +140,11 @@ download_box_no_update (qxl_surface_t *surface, int x1, int y1, int x2, int y2)
+ void
+ qxl_download_box (qxl_surface_t *surface, int x1, int y1, int x2, int y2)
+ {
++    assert (x2 >= x1 && y2 >= y1);
++
++    if (x1 == x2 || y1 == y2)
++        return;
++
+     surface->qxl->bo_funcs->update_area(surface, x1, y1, x2, y2);
+ 
+     download_box_no_update(surface, x1, y1, x2, y2);

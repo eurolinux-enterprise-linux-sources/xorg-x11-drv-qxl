@@ -1,0 +1,36 @@
+From 14dcbb3397f54f8429dbd9e6519d6fead63c7930 Mon Sep 17 00:00:00 2001
+From: Marc-Andre Lureau <marcandre.lureau@redhat.com>
+Date: Fri, 10 Oct 2014 19:22:03 +0200
+Subject: [PATCH] Assert on QXL_INTERRUPT_ERROR
+
+When qemu qxl device reaches a guest bug, it might set the
+QXL_INTERRUPT_ERROR interrupt flag, and stops processing guest
+commands. Therefore, it makes sense to check that flag in the guest and
+quit, instead of running in infinite loop in X and consuming CPU.
+
+Related to:
+https://bugzilla.redhat.com/show_bug.cgi?id=1151559
+
+(cherry picked from commit 41838c66d84c567c086ad236410b659d326ec360)
+---
+ src/qxl_io.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/qxl_io.c b/src/qxl_io.c
+index 8fa90b6..15fd678 100644
+--- a/src/qxl_io.c
++++ b/src/qxl_io.c
+@@ -43,9 +43,12 @@ qxl_wait_for_io_command (qxl_screen_t *qxl)
+ 
+     ram_header = (void *)((unsigned long)qxl->ram + qxl->rom->ram_header_offset);
+ 
+-    while (!(ram_header->int_pending & QXL_INTERRUPT_IO_CMD))
++    while (!(ram_header->int_pending &
++             (QXL_INTERRUPT_IO_CMD | QXL_INTERRUPT_ERROR)))
+ 	usleep (1);
+ 
++    assert(!(ram_header->int_pending & QXL_INTERRUPT_ERROR));
++
+     ram_header->int_pending &= ~QXL_INTERRUPT_IO_CMD;
+ }
+ 

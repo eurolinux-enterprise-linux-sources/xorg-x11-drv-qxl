@@ -22,7 +22,7 @@ Name:      xorg-x11-drv-qxl
 
 Version:   0.1.1
 
-Release:   15%{?gver}%{?dist}
+Release:   17%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 
@@ -42,8 +42,12 @@ Patch8: 0008-Xspice-cleanup-non-regular-files-too.patch
 Patch9: 0009-Xspice-fix-cleanup-when-some-processes-are-already-d.patch
 Patch10: 0010-Xspice-cleanup-vdagent-files.patch
 
-Patch11: disable-surfaces.patch
-Patch12: enable-resizable-surface0.patch
+Patch11: 0011-Assert-on-QXL_INTERRUPT_ERROR.patch
+Patch12: 0012-Check-qxl_download_box-arguments.patch
+Patch13: 0013-Dynamically-adjust-chunk-size-to-avoid-command-buffe.patch
+Patch14: 0014-Don-t-leak-ARGB-cursor-data-bo.patch
+
+Patch101: disable-surfaces.patch
 
 # Support for old revision 1 qxl device (which won't go upstream)
 Patch1001: 1001-Add-QXL-revision-1-compat-support.patch
@@ -98,6 +102,10 @@ XSpice is both an X and a Spice server.
 %patch10 -p1
 %patch11 -p1
 %patch12 -p1
+%patch13 -p1
+%patch14 -p1
+
+%patch101 -p1
 
 %patch1001 -p1
 %patch1002 -p1
@@ -148,6 +156,21 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Mon Mar 30 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-17
+- Fix cursor leak causing a crash when running RHEL6 anaconda in a VM
+  Resolves: rhbz#1199355
+- Remove enable-resizable-surface0.patch. It's causing more troubles than
+  it solves, and QEMU now has the needed ram/vram support to make it
+  unnecessary
+  Resolves: rhbz#1140765
+
+
+* Mon Mar 02 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-16
+- Fix memory leak
+  Resolves: rhbz#1192154
+- Fix freeze in xfig when entering space character
+  Resolves: rhbz#1151559
+
 * Thu Sep 11 2014 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-15
 - Readd the resizable surface patch
   Resolves: rhbz#1076728
