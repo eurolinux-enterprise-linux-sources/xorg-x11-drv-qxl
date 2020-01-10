@@ -22,7 +22,7 @@ Name:      xorg-x11-drv-qxl
 
 Version:   0.1.1
 
-Release:   17%{?gver}%{?dist}
+Release:   19%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 
@@ -33,7 +33,6 @@ Patch1:    qxl-kms-disable-composite.patch
 Patch2:        0005-spiceqxl_display-only-use-qxl-interface-after-it-is-.patch
 
 Patch3: no-surfaces-kms.patch
-Patch4: 0001-worst-hack-of-all-time-to-qxl-driver.patch
 
 # Fixes for running with Xorg suid, which is the only way we ship in fedora
 Patch6: 0006-spiceqxl_spice_server-no-need-to-call-spice_server_s.patch
@@ -46,6 +45,7 @@ Patch11: 0011-Assert-on-QXL_INTERRUPT_ERROR.patch
 Patch12: 0012-Check-qxl_download_box-arguments.patch
 Patch13: 0013-Dynamically-adjust-chunk-size-to-avoid-command-buffe.patch
 Patch14: 0014-Don-t-leak-ARGB-cursor-data-bo.patch
+Patch15: 0015-Remove-image-cache.patch
 
 Patch101: disable-surfaces.patch
 
@@ -94,7 +94,6 @@ XSpice is both an X and a Spice server.
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
-%patch4 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
@@ -104,6 +103,7 @@ XSpice is both an X and a Spice server.
 %patch12 -p1
 %patch13 -p1
 %patch14 -p1
+%patch15 -p1
 
 %patch101 -p1
 
@@ -156,6 +156,15 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Tue Feb 02 2016 Frediano Ziglio <fziglio@redhat.com> 0.1.1-19
+- Remove RHEL 7 hack
+  Resolves: rhbz#1226723
+- Fix memory leak caused by image cache
+  Resolves: rhbz#1221010
+
+* Wed Nov 11 2015 Adam Jackson <ajax@redhat.com> - 0.1.1-18
+- Rebuild for server 1.17
+
 * Mon Mar 30 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-17
 - Fix cursor leak causing a crash when running RHEL6 anaconda in a VM
   Resolves: rhbz#1199355
