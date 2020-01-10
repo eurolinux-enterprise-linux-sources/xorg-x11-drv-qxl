@@ -1,0 +1,169 @@
+From d55fb7f23e332a68b746966de810bfc292f38f3c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?S=C3=B8ren=20Sandmann=20Pedersen?= <ssp@redhat.com>
+Date: Tue, 15 Jan 2013 10:27:33 -0500
+Subject: [PATCH 2/2] When DebugRenderFallbacks is turned on, print debug spew in many cases
+
+Whenever we can't accelerate, and DebugRenderFallbacks is turned on,
+print out the reason we couldn't accelerate.
+---
+ src/qxl_driver.c |   92 +++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 files changed, 78 insertions(+), 14 deletions(-)
+
+diff --git a/src/qxl_driver.c b/src/qxl_driver.c
+index b0e755e..0afb856 100644
+--- a/src/qxl_driver.c
++++ b/src/qxl_driver.c
+@@ -1363,27 +1363,45 @@ qxl_done_copy (PixmapPtr dest)
+  * Composite
+  */
+ static Bool
+-can_accelerate_picture (PicturePtr pict)
++can_accelerate_picture (qxl_screen_t *qxl, PicturePtr pict)
+ {
+     if (!pict)
+ 	return TRUE;
+ 
++    if (!pict->pDrawable)
++    {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("Source image (of type %d) can't be accelerated\n",
++		    pict->pSourcePict->type);
++	}
++
++	return FALSE;
++    }
++
+     if (pict->format != PICT_a8r8g8b8		&&
+ 	pict->format != PICT_x8r8g8b8		&&
+ 	pict->format != PICT_a8)
+     {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("Image with format %x can't be accelerated \n",
++		    pict->format);
++	}
++	
+ 	return FALSE;
+     }
+ 
+-    if (!pict->pDrawable)
+-	return FALSE;
+-
+     if (pict->transform)
+     {
+ 	if (pict->transform->matrix[2][0] != 0	||
+ 	    pict->transform->matrix[2][1] != 0	||
+ 	    pict->transform->matrix[2][2] != pixman_int_to_fixed (1))
+ 	{
++	    if (qxl->debug_render_fallbacks)
++	    {
++		ErrorF ("Image with non-affine transform can't be accelerated\n");
++	    }
+ 	    return FALSE;
+ 	}
+     }
+@@ -1391,6 +1409,11 @@ can_accelerate_picture (PicturePtr pict)
+     if (pict->filter != PictFilterBilinear	&&
+ 	pict->filter != PictFilterNearest)
+     {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("Image with filter type %d can't be accelerated\n",
++		    pict->filter);
++	}
+ 	return FALSE;
+     }
+     
+@@ -1404,9 +1427,27 @@ static Bool
+ qxl_has_composite (qxl_screen_t *qxl)
+ {
+ #ifndef XSPICE
+-    return
+-	qxl->pci->revision >= 4			&&
+-	QXL_HAS_CAP (qxl, SPICE_DISPLAY_CAP_COMPOSITE);
++    if (qxl->pci->revision < 4)
++    {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("No composite due to revision being %d\n",
++		    qxl->pci->revision);
++	}
++	return FALSE;
++    }
++    
++    if (!QXL_HAS_CAP (qxl, SPICE_DISPLAY_CAP_COMPOSITE))
++    {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("No composite due to client not providing "
++		    "SPICE_DISPLAY_CAP_COMPOSITE\n");
++	}
++	return FALSE;
++    }
++    
++    return TRUE;
+ #else
+     /* FIXME */
+     return FALSE;
+@@ -1417,9 +1458,28 @@ static Bool
+ qxl_has_a8_surfaces (qxl_screen_t *qxl)
+ {
+ #ifndef XSPICE
+-    return
+-	qxl->pci->revision >= 4			&&
+-	QXL_HAS_CAP (qxl, SPICE_DISPLAY_CAP_A8_SURFACE);
++    if (qxl->pci->revision < 4)
++    {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("No a8 surface due to revision being %d, which is < 4\n",
++		    qxl->pci->revision);
++	}
++
++	return FALSE;
++    }
++
++    if (!QXL_HAS_CAP (qxl, SPICE_DISPLAY_CAP_COMPOSITE))
++    {
++	if (qxl->debug_render_fallbacks)
++	{
++	    ErrorF ("No composite due to client not providing SPICE_DISPLAY_CAP_A8_SURFACE\n");
++	}
++
++	return FALSE;
++    }
++
++    return TRUE;
+ #else
+     /* FIXME */
+     return FALSE;
+@@ -1451,10 +1511,10 @@ qxl_check_composite (int op,
+ 
+     if (!qxl_has_composite (qxl))
+ 	return FALSE;
+-    
+-    if (!can_accelerate_picture (pSrcPicture)	||
+-	!can_accelerate_picture (pMaskPicture)	||
+-	!can_accelerate_picture (pDstPicture))
++
++    if (!can_accelerate_picture (qxl, pSrcPicture)	||
++	!can_accelerate_picture (qxl, pMaskPicture)	||
++	!can_accelerate_picture (qxl, pDstPicture))
+     {
+ 	return FALSE;
+     }
+@@ -1464,6 +1524,10 @@ qxl_check_composite (int op,
+ 	if (accelerated_ops[i] == op)
+ 	    goto found;
+     }
++
++    if (qxl->debug_render_fallbacks)
++	ErrorF ("Compositing operator %d can't be accelerated\n", op);
++    
+     return FALSE;
+ 
+ found:
+-- 
+1.7.4
+

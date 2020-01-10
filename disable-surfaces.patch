@@ -1,0 +1,12 @@
+diff -up xf86-video-qxl-0.1.0/src/qxl_driver.c.surfaces xf86-video-qxl-0.1.0/src/qxl_driver.c
+--- xf86-video-qxl-0.1.0/src/qxl_driver.c.surfaces	2013-01-16 07:50:44.462129227 -0500
++++ xf86-video-qxl-0.1.0/src/qxl_driver.c	2013-01-16 07:51:09.033128055 -0500
+@@ -2473,7 +2473,7 @@ qxl_pre_init (ScrnInfoPtr pScrn, int fla
+     qxl->enable_fallback_cache =
+         xf86ReturnOptValBool (qxl->options, OPTION_ENABLE_FALLBACK_CACHE, TRUE);
+     qxl->enable_surfaces =
+-	xf86ReturnOptValBool (qxl->options, OPTION_ENABLE_SURFACES, TRUE);
++	xf86ReturnOptValBool (qxl->options, OPTION_ENABLE_SURFACES, FALSE);
+     qxl->debug_render_fallbacks =
+ 	xf86ReturnOptValBool (qxl->options, OPTION_DEBUG_RENDER_FALLBACKS, FALSE);
+     qxl->num_heads =
