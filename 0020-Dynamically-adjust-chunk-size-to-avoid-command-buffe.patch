@@ -1,0 +1,61 @@
+From 8c1c3ba5f838f25b4ec76b98e86061de7cbff03d Mon Sep 17 00:00:00 2001
+From: David Mansfield <spice@dm.cobite.com>
+Date: Tue, 3 Jun 2014 10:05:42 -0400
+Subject: [PATCH] Dynamically adjust chunk size to avoid command buffer
+ overflow.
+
+The maximum number of "commands" that can be queued at once is
+fixed at compile time at MAX_RELOCS. However, during the creation
+of an image object in qxl_image_create(), the image is split into
+commands of maximum size 512*512. For a large dual-head system,
+it is easy to create an image for which the number of chunks will
+result in an overflow of MAX_RELOCS number of "commands".
+
+Identify this scenario and dynamically increase the chunk size to
+avoid the overflow, and the resulting assert() which crashes Xorg.
+
+Fixes: https://bugs.freedesktop.org/show_bug.cgi?id=79317
+Fixes: https://bugzilla.redhat.com/show_bug.cgi?id=1192154
+Signed-off-by: David Mansfield <spice@dm.cobite.com>
+(cherry picked from commit 3d511c30206bd8c9a207c436186a03af0bb02962)
+---
+ src/qxl_image.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/src/qxl_image.c b/src/qxl_image.c
+index 0a0ca30..eb66b63 100644
+--- a/src/qxl_image.c
++++ b/src/qxl_image.c
+@@ -140,6 +140,7 @@ qxl_image_create (qxl_screen_t *qxl, const uint8_t *data,
+ 	struct qxl_bo *image_bo;
+ 	int dest_stride = (width * Bpp + 3) & (~3);
+ 	int h;
++	int chunk_size;
+ 
+ 	data += y * stride + x * Bpp;
+ 
+@@ -155,9 +156,23 @@ qxl_image_create (qxl_screen_t *qxl, const uint8_t *data,
+ 
+ 	hash = 0;
+ 	h = height;
++
++	chunk_size = MAX (512 * 512, dest_stride);
++
++	/* ensure we will not create too many pieces and overflow
++	 * the command buffer (MAX_RELOCS).  if so, increase the chunk_size.
++	 * each loop creates at least 2 cmd buffer entries, and
++	 * we have to leave room when we're done.
++	 */
++	if (height / (chunk_size / dest_stride) > (MAX_RELOCS / 4)) {
++		chunk_size = height / (MAX_RELOCS/4) * dest_stride;
++#if 0
++		ErrorF ("adjusted chunk_size to %d\n", chunk_size);
++#endif
++	}
++
+ 	while (h)
+ 	{
+-	    int chunk_size = MAX (512 * 512, dest_stride);
+ 	    int n_lines = MIN ((chunk_size / dest_stride), h);
+ 	    struct qxl_bo *bo = qxl->bo_funcs->bo_alloc (qxl, sizeof (QXLDataChunk) + n_lines * dest_stride, "image data");
+ 

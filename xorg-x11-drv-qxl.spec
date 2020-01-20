@@ -22,7 +22,7 @@ Name:      xorg-x11-drv-qxl
 
 Version:   0.1.1
 
-Release:   12%{?gver}%{?dist}
+Release:   18%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 
@@ -34,6 +34,7 @@ Patch2:        0005-spiceqxl_display-only-use-qxl-interface-after-it-is-.patch
 
 Patch3: no-surfaces-kms.patch
 Patch4: 0001-worst-hack-of-all-time-to-qxl-driver.patch
+Patch5: disable-surfaces.patch
 
 # Fixes for running with Xorg suid, which is the only way we ship in fedora
 Patch6: 0006-spiceqxl_spice_server-no-need-to-call-spice_server_s.patch
@@ -44,16 +45,14 @@ Patch10: 0010-Xspice-cleanup-vdagent-files.patch
 Patch11: 0011-drm-restore-cursor-after-resolution-change.patch
 Patch12: 0012-Remove-call-to-CrtcRotate.patch
 Patch13: 0013-drm-fail-gracefuly-on-monitor-resize.patch
-
-Patch14: disable-surfaces.patch
-
-# Support for old revision 1 qxl device (which won't go upstream)
-# These aren't currently being applied, because they're not compatible with
-# xserver 1.15.  They could be if someone wanted, but it's been 2.5 years,
-# probably nobody's running that old of a RHEV anymore...
-Patch20:	   0002-Add-old-driver-in-as-a-compatibility-layer.patch
-Patch21:	   0003-Link-in-the-compat-driver-various-renamings.patch
-Patch22:	   0004-compat-bump-to-new-server-API-changes.patch
+Patch14: 0014-Use-pci_io_write8-instead-of-outb.patch
+Patch15: 0015-Update-drm-properties-correctly.patch
+Patch16: 0016-kms-initialize-primary-surface-to-screen-virtual-siz.patch
+Patch17: 0017-kms-do-not-overwrite-screen-virtualX-Y.patch
+Patch18: 0018-Assert-on-QXL_INTERRUPT_ERROR.patch
+Patch19: 0019-Check-qxl_download_box-arguments.patch
+Patch20: 0020-Dynamically-adjust-chunk-size-to-avoid-command-buffe.patch
+Patch21: 0021-Don-t-leak-ARGB-cursor-data-bo.patch
 
 License:   MIT
 Group:     User Interface/X Hardware Support
@@ -97,6 +96,7 @@ XSpice is both an X and a Spice server.
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
+%patch5 -p1
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
@@ -106,6 +106,13 @@ XSpice is both an X and a Spice server.
 %patch12 -p1
 %patch13 -p1
 %patch14 -p1
+%patch15 -p1
+%patch16 -p1
+%patch17 -p1
+%patch18 -p1
+%patch19 -p1
+%patch20 -p1
+%patch21 -p1
 
 %build
 autoreconf -f -i
@@ -153,6 +160,35 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Fri Aug 28 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-18
+- Rebuild after tagging rebased xorg-x11-server in the build root
+  Related: rhbz#1221909
+
+* Wed Aug 26 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-17
+- Fix freeze in xfig when entering space character
+  Resolves: rhbz#1221909
+- Fix memory leak
+  Resolves: rhbz#1222038
+- Fix cursor leak causing a crash when running RHEL6 anaconda in a VM
+  Resolves: rhbz#1222040
+
+* Fri May 22 2015 Marc-Andre Lureau <marcandre.lureau@redhat.com> - 0.1.1-16
+- Fix glitches when restarting X server
+  Resolves: rhbz#1102175
+- Fix restarting X server
+  Resolves: rhbz#1185807
+
+* Tue May 19 2015 Jonathon Jongsma <jjongsma@redhat.com> - 0.1.1-15
+- Update drm properties correctly
+  Resolves: rhbz#1153377
+
+* Fri May 15 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-14
+- Add upstream patch fixing aarch64 build
+  Resolves: rhbz#1221328
+
+* Wed May 13 2015 Adam Jackson <ajax@redhat.com> 0.1.1-13
+- Rebuild for xserver 1.17
+
 * Thu Nov 20 2014 Marc-Andre Lureau <mlureau@redhat.com> 0.1.1-12
 - Try to fallback to previous working configuration if
   drmModeSetCrtc() failed.
