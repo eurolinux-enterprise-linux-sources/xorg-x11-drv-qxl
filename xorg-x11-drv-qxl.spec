@@ -22,20 +22,22 @@ Name:      xorg-x11-drv-qxl
 
 Version:   0.1.5
 
-Release:   3%{?gver}%{?dist}
+Release:   4%{?gver}%{?dist}.1
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 
 #Source0: %{tarball}-%{gitdate}.tar.bz2
 
-Patch4: 0001-worst-hack-of-all-time-to-qxl-driver.patch
-Patch5: 0001-modesetting-Validate-the-atom-for-enum-properties.patch
+Patch1: 0001-worst-hack-of-all-time-to-qxl-driver.patch
+Patch2: 0002-modesetting-Validate-the-atom-for-enum-properties.patch
+Patch3: 0003-qxl-call-provider-init.patch
 
 License:   MIT
 Group:     User Interface/X Hardware Support
 
 ExcludeArch: s390 s390x
 
+BuildRequires: git-core
 BuildRequires: pkgconfig
 BuildRequires: xorg-x11-server-devel >= 1.1.0-1
 BuildRequires: spice-protocol >= 0.12.1
@@ -68,10 +70,7 @@ XSpice is both an X and a Spice server.
 %endif
 
 %prep
-%setup -q -n %{tarball}-%{?gitdate:%{gitdate}}%{!?gitdate:%{version}}
-
-%patch4 -p1
-%patch5 -p1
+%autosetup -S git_am -n %{tarball}-%{?gitdate:%{gitdate}}%{!?gitdate:%{version}}
 
 %build
 autoreconf -f -i
@@ -119,6 +118,13 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Wed May 30 2018 Adam Jackson <ajax@redhat.com> - 0.1.5-4.1
+- Rebuild for xserver 1.20
+
+* Thu May 17 2018 Christophe Fergeau <cfergeau@redhat.com> - 0.1.5-4
+- Fix crash when multiple QXL devices are in use
+  Resolves: rhbz#1428340
+
 * Mon Jun 19 2017 Adam Jackson <ajax@redhat.com> - 0.1.5-3
 - Validate RANDR output property atoms
 

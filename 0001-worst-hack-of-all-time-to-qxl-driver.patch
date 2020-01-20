@@ -1,4 +1,4 @@
-From a22cf06968d0bbeea4784fa3bf69628a9cbf1397 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dave Airlie <airlied@redhat.com>
 Date: Tue, 26 Nov 2013 10:45:26 +1000
 Subject: [PATCH] worst hack of all time to qxl driver
@@ -8,10 +8,10 @@ Subject: [PATCH] worst hack of all time to qxl driver
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/src/qxl_surface.c b/src/qxl_surface.c
-index 1075eae..561b416 100644
+index 6a7e275..bb59f9e 100644
 --- a/src/qxl_surface.c
 +++ b/src/qxl_surface.c
-@@ -759,8 +759,9 @@ qxl_surface_composite (qxl_surface_t *dest,
+@@ -770,8 +770,9 @@ qxl_surface_composite (qxl_surface_t *dest,
        qxl->bo_funcs->bo_decref(qxl, derefs[i]);
  }
  
@@ -23,7 +23,7 @@ index 1075eae..561b416 100644
  		       int x, int y, int width, int height,
  		       const char *src, int src_pitch)
  {
-@@ -803,6 +804,31 @@ qxl_surface_put_image (qxl_surface_t *dest,
+@@ -814,6 +815,31 @@ qxl_surface_put_image (qxl_surface_t *dest,
      return TRUE;
  }
  
@@ -55,6 +55,3 @@ index 1075eae..561b416 100644
  void
  qxl_get_formats (int bpp, SpiceSurfaceFmt *format, pixman_format_code_t *pformat)
  {
--- 
-1.8.4.2
-
