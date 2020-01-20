@@ -1,0 +1,12 @@
+diff -up xf86-video-qxl-0.1.1/src/qxl_driver.c~ xf86-video-qxl-0.1.1/src/qxl_driver.c
+--- xf86-video-qxl-0.1.1/src/qxl_driver.c~	2014-03-11 03:38:00.595359221 -0400
++++ xf86-video-qxl-0.1.1/src/qxl_driver.c	2014-03-11 12:57:54.888353415 -0400
+@@ -79,7 +79,7 @@ const OptionInfoRec DefaultOptions[] =
+     { OPTION_ENABLE_FALLBACK_CACHE,
+       "EnableFallbackCache",      OPTV_BOOLEAN, { 1 }, FALSE },
+     { OPTION_ENABLE_SURFACES,
+-      "EnableSurfaces",           OPTV_BOOLEAN, { 1 }, FALSE },
++      "EnableSurfaces",           OPTV_BOOLEAN, { 0 }, FALSE },
+     { OPTION_DEBUG_RENDER_FALLBACKS,
+       "DebugRenderFallbacks",     OPTV_BOOLEAN, { 0 }, FALSE },
+     { OPTION_NUM_HEADS,

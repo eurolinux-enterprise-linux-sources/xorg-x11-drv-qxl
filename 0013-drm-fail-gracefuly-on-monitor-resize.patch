@@ -1,0 +1,49 @@
+From a3704bda41737263e8a547fb3d97ba818935d768 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marc-Andr=C3=A9=20Lureau?= <marcandre.lureau@redhat.com>
+Date: Fri, 8 Aug 2014 19:24:28 +0200
+Subject: [PATCH xf86-qxl] drm: fail gracefuly on monitor resize
+
+If drmModeSetCrtc() failed, try to fallback to previous working
+configuration.
+
+Related to:
+https://bugzilla.redhat.com/show_bug.cgi?id=1127552
+---
+ src/qxl_drmmode.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/src/qxl_drmmode.c b/src/qxl_drmmode.c
+index f9eca5f..42347e6 100644
+--- a/src/qxl_drmmode.c
++++ b/src/qxl_drmmode.c
+@@ -214,11 +214,13 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
+ 		}
+ 		ret = drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
+ 				     fb_id, x, y, output_ids, output_count, &kmode);
+-		if (ret)
++		if (ret) {
+ 			xf86DrvMsg(crtc->scrn->scrnIndex, X_ERROR,
+ 				   "failed to set mode: %s", strerror(-ret));
+-		else
++			return FALSE;
++		} else {
+ 			ret = TRUE;
++		}
+ 
+ 		if (crtc->scrn->pScreen)
+ 			xf86CrtcSetScreenSubpixelOrder(crtc->scrn->pScreen);
+@@ -825,8 +827,9 @@ drmmode_xf86crtc_resize (ScrnInfoPtr scrn, int width, int height)
+ 		xf86CrtcPtr crtc = xf86_config->crtc[i];
+ 		if (!crtc->enabled)
+ 			continue;
+-		drmmode_set_mode_major(crtc, &crtc->mode, crtc->rotation,
+-				       crtc->x, crtc->y);
++		if (!drmmode_set_mode_major(crtc, &crtc->mode, crtc->rotation,
++                                            crtc->x, crtc->y))
++                    goto fail;
+ 	}
+ 
+ 	{
+-- 
+2.1.0
+

@@ -1,0 +1,42 @@
+From 17e2ee0d904f35d4fe756ca2d9cd100e15663018 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marc-Andr=C3=A9=20Lureau?= <marcandre.lureau@gmail.com>
+Date: Wed, 2 Jul 2014 12:22:46 +0200
+Subject: [PATCH] drm: restore cursor after resolution change
+
+The Spice server & qemu reset the cursor state when
+changing resolution. Although X does restore the
+cursor on framebuffer changes, it doesn't for crtc
+config. Restoring the cursor here is the simplest
+way to solve the "invisible cursor" after resolution
+change bug with DRM driver.
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1030531
+---
+ src/qxl_drmmode.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/qxl_drmmode.c b/src/qxl_drmmode.c
+index af4b22d..f9eca5f 100644
+--- a/src/qxl_drmmode.c
++++ b/src/qxl_drmmode.c
+@@ -47,6 +47,9 @@
+ 
+ #include "qxl.h"
+ #include "qxl_surface.h"
++
++static void drmmode_show_cursor (xf86CrtcPtr crtc);
++
+ static void
+ drmmode_ConvertFromKMode(ScrnInfoPtr	scrn,
+ 		     drmModeModeInfo *kmode,
+@@ -248,6 +251,10 @@ done:
+ 		crtc->active = TRUE;
+ #endif
+ 
++        CursorPtr cursor = xf86_config->cursor;
++        if (cursor)
++            drmmode_show_cursor(crtc);
++
+ 	return ret;
+ }
+ 
