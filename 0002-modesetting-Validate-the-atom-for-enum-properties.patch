@@ -1,4 +1,4 @@
-From 78abd5221f7efd87383aa357590efff083449aa3 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Adam Jackson <ajax@redhat.com>
 Date: Tue, 13 Jun 2017 09:29:28 -0400
 Subject: [PATCH] modesetting: Validate the atom for enum properties
@@ -28,6 +28,3 @@ index 3c288f9..ff164cd 100644
  
  	    /* search for matching name string, then set its value down */
  	    for (j = 0; j < p->mode_prop->count_enums; j++) {
--- 
-2.13.0
-
