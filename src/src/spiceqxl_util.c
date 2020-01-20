@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2013 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -20,13 +20,25 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef SPICEQXL_DRIVER_H
-#define SPICEQXL_DRIVER_H 1
+#include "config.h"
 
-#define DEFAULT_FRAME_BUFFER_SIZE   16
-#define DEFAULT_SURFACE_BUFFER_SIZE 128
-#define DEFAULT_COMMAND_BUFFER_SIZE 128
-#define ROM_SIZE (1<<20) // TODO - put correct size
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
-void init_qxl_rom(qxl_screen_t* qxl, uint32_t rom_size);
-#endif /* SPICEQXL_DRIVER_H */
+#include "qxl_option_helpers.h"
+#include "spiceqxl_util.h"
+
+void spiceqxl_chown_agent_file(qxl_screen_t *qxl, const char *filename)
+{
+    int uid, gid;
+
+    uid = get_int_option(qxl->options, OPTION_SPICE_VDAGENT_UID, "XSPICE_VDAGENT_UID");
+    gid = get_int_option(qxl->options, OPTION_SPICE_VDAGENT_GID, "XSPICE_VDAGENT_GID");
+    if (uid && gid) {
+        if (chown(filename, uid, gid) != 0) {
+            fprintf(stderr, "spice: failed to chain ownership of '%s' to %d/%d: %s\n",
+                    filename, uid, gid, strerror(errno));
+        }
+    }
+}

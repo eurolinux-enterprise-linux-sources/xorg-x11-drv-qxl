@@ -25,9 +25,15 @@
 # _ladir passes a dummy rpath to libtool so the thing will actually link
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
 
-SUBDIRS=uxa
+SUBDIRS = uxa spiceccid
 
-AM_CFLAGS = $(SPICE_PROTOCOL_CFLAGS) $(XORG_CFLAGS) $(PCIACCESS_CFLAGS) $(CWARNFLAGS) $(DRM_CFLAGS) @LIBUDEV_CFLAGS@
+AM_CFLAGS =					\
+	$(SPICE_PROTOCOL_CFLAGS)		\
+	$(XORG_CFLAGS)				\
+	$(PCIACCESS_CFLAGS)			\
+	$(CWARNFLAGS)				\
+	$(DRM_CFLAGS)				\
+	$(LIBUDEV_CFLAGS)
 
 if BUILD_QXL
 qxl_drv_la_LTLIBRARIES = qxl_drv.la
@@ -40,30 +46,30 @@ qxl_drv_la_LIBADD += $(LIBUDEV_LIBS)
 endif
 
 
-qxl_drv_la_SOURCES =				\
-	qxl.h					\
-	qxl_driver.c				\
-	qxl_image.c				\
-	qxl_surface.c				\
-	qxl_surface_ums.c			\
-	qxl_surface.h				\
-	qxl_ring.c				\
-	qxl_mem.c				\
-	mspace.c				\
-	mspace.h				\
-	murmurhash3.c				\
-	murmurhash3.h				\
-	qxl_cursor.c				\
+qxl_drv_la_SOURCES =			\
+	qxl.h				\
+	qxl_driver.c			\
+	qxl_image.c			\
+	qxl_surface.c			\
+	qxl_surface_ums.c		\
+	qxl_surface.h			\
+	qxl_ring.c			\
+	qxl_mem.c			\
+	mspace.c			\
+	mspace.h			\
+	murmurhash3.c			\
+	murmurhash3.h			\
+	qxl_cursor.c			\
 	qxl_option_helpers.c		\
 	qxl_option_helpers.h		\
 	qxl_uxa.c			\
-	qxl_ums_mode.c                  \
-	qxl_io.c                        \
+	qxl_ums_mode.c			\
+	qxl_io.c			\
 	dfps.c				\
 	qxl_kms.c			\
 	qxl_drmmode.c			\
 	qxl_drmmode.h			\
-	compat-api.h 
+	compat-api.h
 endif
 
 if BUILD_XSPICE
@@ -75,44 +81,48 @@ spiceqxl_drv_la_CFLAGS = -DXSPICE $(AM_CFLAGS) $(SPICE_CFLAGS)
 
 spiceqxl_drv_la_LIBADD = uxa/libuxa.la $(XORG_LIBS)
 
-spiceqxl_drv_la_SOURCES =				\
-	qxl.h					\
-	qxl_option_helpers.c			\
-	qxl_option_helpers.h			\
-	spiceqxl_spice_server.c			\
-	spiceqxl_spice_server.h			\
-	spiceqxl_io_port.c			\
-	spiceqxl_io_port.h			\
-	spiceqxl_driver.c			\
-	spiceqxl_driver.h			\
-	spiceqxl_main_loop.c			\
+spiceqxl_drv_la_SOURCES =		\
+	qxl.h				\
+	qxl_option_helpers.c		\
+	qxl_option_helpers.h		\
+	spiceqxl_util.h			\
+	spiceqxl_util.c			\
+	spiceqxl_spice_server.c		\
+	spiceqxl_spice_server.h		\
+	spiceqxl_io_port.c		\
+	spiceqxl_io_port.h		\
+	spiceqxl_driver.c		\
+	spiceqxl_driver.h		\
+	spiceqxl_main_loop.c		\
 	spiceqxl_main_loop.h		\
-	spiceqxl_display.c			\
-	spiceqxl_display.h			\
-	spiceqxl_vdagent.c			\
-	spiceqxl_vdagent.h			\
-	spiceqxl_uinput.c			\
-	spiceqxl_uinput.h			\
-	spiceqxl_audio.c			\
-	spiceqxl_audio.h			\
-	spiceqxl_inputs.c			\
-	spiceqxl_inputs.h			\
-	qxl_driver.c				\
-	qxl_image.c				\
-	qxl_surface.c				\
-	qxl_surface_ums.c			\
-	qxl_surface.h				\
-	qxl_ring.c				\
-	qxl_mem.c				\
-	mspace.c				\
-	mspace.h				\
-	murmurhash3.c				\
-	murmurhash3.h				\
-	qxl_cursor.c				\
-	dfps.c				        \
-	dfps.h						\
-	qxl_uxa.c                               \
-	qxl_ums_mode.c                     	\
-	qxl_io.c                                \
+	spiceqxl_display.c		\
+	spiceqxl_display.h		\
+	spiceqxl_vdagent.c		\
+	spiceqxl_vdagent.h		\
+	spiceqxl_uinput.c		\
+	spiceqxl_uinput.h		\
+	spiceqxl_audio.c		\
+	spiceqxl_smartcard.c		\
+	spiceqxl_smartcard.h		\
+	spiceqxl_audio.h		\
+	spiceqxl_inputs.c		\
+	spiceqxl_inputs.h		\
+	qxl_driver.c			\
+	qxl_image.c			\
+	qxl_surface.c			\
+	qxl_surface_ums.c		\
+	qxl_surface.h			\
+	qxl_ring.c			\
+	qxl_mem.c			\
+	mspace.c			\
+	mspace.h			\
+	murmurhash3.c			\
+	murmurhash3.h			\
+	qxl_cursor.c			\
+	dfps.c				\
+	dfps.h				\
+	qxl_uxa.c			\
+	qxl_ums_mode.c			\
+	qxl_io.c			\
 	compat-api.h
 endif

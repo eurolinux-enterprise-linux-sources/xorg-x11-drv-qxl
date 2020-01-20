@@ -13,12 +13,14 @@
 #include <linux/uinput.h>
 
 #include "qxl_option_helpers.h"
+#include "spiceqxl_util.h"
 #include "spiceqxl_inputs.h"
 
 #include "spiceqxl_uinput.h"
 
 static const char *uinput_filename;
 static int uinput_fd;
+static SpiceWatch *uinput_watch;
 static struct input_event inp_event;
 static int offset;
 
@@ -113,12 +115,23 @@ void spiceqxl_uinput_init(qxl_screen_t *qxl)
                 uinput_filename, strerror(errno));
         return;
     }
+    spiceqxl_chown_agent_file(qxl, uinput_filename);
     uinput_fd = open(uinput_filename, O_RDONLY | O_NONBLOCK, 0666);
     if (uinput_fd == -1) {
         fprintf(stderr, "spice: failed creating uinput file %s: %s\n",
                uinput_filename, strerror(errno));
         return;
     }
-    qxl->core->watch_add(uinput_fd, SPICE_WATCH_EVENT_READ, spiceqxl_uinput_read_cb, qxl);
-    spice_server_set_agent_mouse(qxl->spice_server, 1);
+}
+
+void spiceqxl_uinput_watch(qxl_screen_t *qxl, Bool on)
+{
+    if (uinput_watch) {
+        qxl->core->watch_remove(uinput_watch);
+        uinput_watch = NULL;
+    }
+
+    if (on)
+        uinput_watch = qxl->core->watch_add(uinput_fd, SPICE_WATCH_EVENT_READ,
+                            spiceqxl_uinput_read_cb, qxl);
 }

@@ -23,7 +23,7 @@
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([xf86-video-qxl],
-        [0.1.1],
+        [0.1.5],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
         [xf86-video-qxl])
 AC_CONFIG_SRCDIR([Makefile.am])
@@ -60,9 +60,14 @@ XORG_DRIVER_CHECK_EXT(RENDER, renderproto)
 XORG_DRIVER_CHECK_EXT(XV, videoproto)
 XORG_DRIVER_CHECK_EXT(XFreeXDGA, xf86dgaproto)
 
-# Obtain compiler/linker options for the driver dependencies
-PKG_CHECK_MODULES(XORG, [xorg-server >= 1.0.99.901] xproto fontsproto $REQUIRED_MODULES)
+# We can use either version 1 or version 2 of libXfont
+PKG_CHECK_EXISTS(xfont2,
+                 [xfont_pc=xfont2
+                  AC_DEFINE(HAVE_XFONT2,1,[Version 2 of the libXfont library])],
+                 [xfont_pc=xfont])
 
+# Obtain compiler/linker options for the driver dependencies
+PKG_CHECK_MODULES(XORG, [xorg-server >= 1.0.99.901] xproto fontsproto $xfont_pc $REQUIRED_MODULES)
 
 save_CFLAGS="$CFLAGS"
 CFLAGS="$XORG_CFLAGS"
@@ -126,17 +131,42 @@ AC_ARG_ENABLE(xspice,
 ])
 
 if test "x$enable_xspice" = "xyes"; then
+    AC_CHECK_HEADERS(sys/inotify.h)
+    AC_CHECK_FUNCS(inotify_init1)
     PKG_CHECK_MODULES([SPICE], [spice-server >= 0.6.3],
     [
         AC_SUBST(SPICE_CFLAGS)
         AC_SUBST(SPICE_LIBS)
     ],
-)
+    )
 else
     enable_xspice=no
 fi
+
+AC_ARG_ENABLE([ccid],
+            [AS_HELP_STRING([--enable-ccid],
+            [Build the spiceccid SmartCard driver (default is no)])],
+            [enable_ccid=$enableval],
+            [enable_ccid=no])
+AC_ARG_WITH(ccid-module-dir,
+            [AS_HELP_STRING([--with-ccid-module-dir=DIR ],
+            [Specify the install path for spiceccid driver (default is $libdir/pcsc/drivers/serial)])],
+            [ cciddir="$withval" ],
+            [ cciddir="$libdir/pcsc/drivers/serial" ])
+AC_SUBST(cciddir)
+if test "x$enable_ccid" != "xno"; then
+    PKG_CHECK_MODULES(LIBPCSCLITE, [libpcsclite])
+    PKG_CHECK_MODULES(LIBCACARD, [libcacard])
+
+    if test "x$enable_xspice" = "xno"; then
+        AC_MSG_ERROR([Building with ccid requires xspice, but xspice is not enabled])
+    fi
+fi
+
+
 AM_CONDITIONAL(BUILD_XSPICE, test "x$enable_xspice" = "xyes")
 AM_CONDITIONAL(BUILD_QXL, test "x$enable_qxl" = "xyes")
+AM_CONDITIONAL(BUILD_SPICECCID, test "x$enable_ccid" = "xyes")
 
 AC_ARG_ENABLE([udev],
 		AS_HELP_STRING([--disable-udev], [Disable libudev support [default=auto]]),
@@ -166,6 +196,7 @@ fi
 AC_CONFIG_FILES([
                 Makefile
                 src/Makefile
+                src/spiceccid/Makefile
                 src/uxa/Makefile
                 scripts/Makefile
                 examples/Makefile
@@ -185,4 +216,5 @@ echo "
         KMS:                      ${DRM_MODE}
         Build qxl:                ${enable_qxl}
         Build xspice:             ${enable_xspice}
+        Build spiceccid:          ${enable_ccid}
 "

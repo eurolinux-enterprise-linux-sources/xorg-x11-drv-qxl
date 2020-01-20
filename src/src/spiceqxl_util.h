@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2013 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -20,13 +20,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef SPICEQXL_DRIVER_H
-#define SPICEQXL_DRIVER_H 1
+#ifndef SPICEQXL_UTIL_H
+#define SPICEQXL_UTIL_H
 
-#define DEFAULT_FRAME_BUFFER_SIZE   16
-#define DEFAULT_SURFACE_BUFFER_SIZE 128
-#define DEFAULT_COMMAND_BUFFER_SIZE 128
-#define ROM_SIZE (1<<20) // TODO - put correct size
+#include "qxl.h"
 
-void init_qxl_rom(qxl_screen_t* qxl, uint32_t rom_size);
-#endif /* SPICEQXL_DRIVER_H */
+void spiceqxl_chown_agent_file(qxl_screen_t *qxl, const char *filename);
+
+#endif

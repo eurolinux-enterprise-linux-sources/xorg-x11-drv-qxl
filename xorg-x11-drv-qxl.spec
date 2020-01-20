@@ -20,39 +20,16 @@
 Summary:   Xorg X11 qxl video driver
 Name:      xorg-x11-drv-qxl
 
-Version:   0.1.1
+Version:   0.1.5
 
-Release:   18%{?gver}%{?dist}
+Release:   3%{?gver}%{?dist}
 URL:       http://www.x.org
 Source0:   http://xorg.freedesktop.org/releases/individual/driver/%{tarball}-%{version}.tar.bz2
 
 #Source0: %{tarball}-%{gitdate}.tar.bz2
-Patch1:    qxl-kms-disable-composite.patch
 
-# This should go away with a spice server containing 1d18b7e98ab268c755933061d77ccc7a981815e2
-Patch2:        0005-spiceqxl_display-only-use-qxl-interface-after-it-is-.patch
-
-Patch3: no-surfaces-kms.patch
 Patch4: 0001-worst-hack-of-all-time-to-qxl-driver.patch
-Patch5: disable-surfaces.patch
-
-# Fixes for running with Xorg suid, which is the only way we ship in fedora
-Patch6: 0006-spiceqxl_spice_server-no-need-to-call-spice_server_s.patch
-Patch7: 0007-xspice-chown-both-files-used-by-vdagent-for-suid-Xor.patch
-Patch8: 0008-Xspice-cleanup-non-regular-files-too.patch
-Patch9: 0009-Xspice-fix-cleanup-when-some-processes-are-already-d.patch
-Patch10: 0010-Xspice-cleanup-vdagent-files.patch
-Patch11: 0011-drm-restore-cursor-after-resolution-change.patch
-Patch12: 0012-Remove-call-to-CrtcRotate.patch
-Patch13: 0013-drm-fail-gracefuly-on-monitor-resize.patch
-Patch14: 0014-Use-pci_io_write8-instead-of-outb.patch
-Patch15: 0015-Update-drm-properties-correctly.patch
-Patch16: 0016-kms-initialize-primary-surface-to-screen-virtual-siz.patch
-Patch17: 0017-kms-do-not-overwrite-screen-virtualX-Y.patch
-Patch18: 0018-Assert-on-QXL_INTERRUPT_ERROR.patch
-Patch19: 0019-Check-qxl_download_box-arguments.patch
-Patch20: 0020-Dynamically-adjust-chunk-size-to-avoid-command-buffe.patch
-Patch21: 0021-Don-t-leak-ARGB-cursor-data-bo.patch
+Patch5: 0001-modesetting-Validate-the-atom-for-enum-properties.patch
 
 License:   MIT
 Group:     User Interface/X Hardware Support
@@ -63,6 +40,7 @@ BuildRequires: pkgconfig
 BuildRequires: xorg-x11-server-devel >= 1.1.0-1
 BuildRequires: spice-protocol >= 0.12.1
 BuildRequires: libdrm-devel >= 2.4.46-1
+BuildRequires: libXfont2-devel
 
 %ifarch x86_64
 BuildRequires: spice-server-devel >= 0.8.0
@@ -92,27 +70,8 @@ XSpice is both an X and a Spice server.
 %prep
 %setup -q -n %{tarball}-%{?gitdate:%{gitdate}}%{!?gitdate:%{version}}
 
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch6 -p1
-%patch7 -p1
-%patch8 -p1
-%patch9 -p1
-%patch10 -p1
-%patch11 -p1
-%patch12 -p1
-%patch13 -p1
-%patch14 -p1
-%patch15 -p1
-%patch16 -p1
-%patch17 -p1
-%patch18 -p1
-%patch19 -p1
-%patch20 -p1
-%patch21 -p1
 
 %build
 autoreconf -f -i
@@ -160,6 +119,17 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/X11/spiceqxl.xorg.conf
 
 
 %changelog
+* Mon Jun 19 2017 Adam Jackson <ajax@redhat.com> - 0.1.5-3
+- Validate RANDR output property atoms
+
+* Wed Feb 01 2017 Adam Jackson <ajax@redhat.com> - 0.1.5-2
+- Rebuild for 1.19 ABI
+
+* Tue Jan 24 2017 Christophe Fergeau <cfergeau@redhat.com> 0.1.5-1
+- Rebase to xorg-x11-drv-qxl 0.1.5
+  Resolves: rhbz#1401656
+  Related: rhbz#1398296
+
 * Fri Aug 28 2015 Christophe Fergeau <cfergeau@redhat.com> 0.1.1-18
 - Rebuild after tagging rebased xorg-x11-server in the build root
   Related: rhbz#1221909

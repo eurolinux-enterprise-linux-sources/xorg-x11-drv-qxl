@@ -55,6 +55,7 @@
 #include "spiceqxl_io_port.h"
 #include "spiceqxl_spice_server.h"
 #include "spiceqxl_audio.h"
+#include "spiceqxl_smartcard.h"
 #include "spiceqxl_vdagent.h"
 #endif /* XSPICE */
 
@@ -97,9 +98,8 @@ const OptionInfoRec DefaultOptions[] =
       "SpiceX509Dir",             OPTV_STRING,    {0}, FALSE},
     { OPTION_SPICE_SASL,
       "SpiceSasl",                OPTV_BOOLEAN,   {0}, FALSE},
-    /* VVV qemu defaults to 1 - not implemented in xspice yet */
     { OPTION_SPICE_AGENT_MOUSE,
-      "SpiceAgentMouse",          OPTV_BOOLEAN,   {0}, FALSE},
+      "SpiceAgentMouse",          OPTV_BOOLEAN,   {0}, TRUE },
     { OPTION_SPICE_DISABLE_TICKETING,
       "SpiceDisableTicketing",    OPTV_BOOLEAN,   {0}, FALSE},
     { OPTION_SPICE_PASSWORD,
@@ -142,8 +142,22 @@ const OptionInfoRec DefaultOptions[] =
       "SpiceVdagentVirtioPath",   OPTV_STRING,    {.str = spice_vdagent_virtio_path_default}, FALSE},
     { OPTION_SPICE_VDAGENT_UINPUT_PATH,
       "SpiceVdagentUinputPath",   OPTV_STRING,    {.str = spice_vdagent_uinput_path_default}, FALSE},
+    { OPTION_SPICE_VDAGENT_UID,
+      "SpiceVdagentUid",          OPTV_INTEGER,    {0}, FALSE},
+    { OPTION_SPICE_VDAGENT_GID,
+      "SpiceVdagentGid",          OPTV_INTEGER,    {0}, FALSE},
+    { OPTION_FRAME_BUFFER_SIZE,
+      "FrameBufferSize",          OPTV_INTEGER,    {DEFAULT_FRAME_BUFFER_SIZE}, FALSE},
+    { OPTION_SURFACE_BUFFER_SIZE,
+      "SurfaceBufferSize",        OPTV_INTEGER,    {DEFAULT_SURFACE_BUFFER_SIZE}, FALSE},
+    { OPTION_COMMAND_BUFFER_SIZE,
+      "CommandBufferSize",        OPTV_INTEGER,    {DEFAULT_COMMAND_BUFFER_SIZE}, FALSE},
+    { OPTION_SPICE_SMARTCARD_FILE,
+      "SpiceSmartcardFile",       OPTV_STRING,    {0}, FALSE},
+    { OPTION_SPICE_VIDEO_CODECS,
+      "SpiceVideoCodecs",         OPTV_STRING,    {0}, FALSE},
 #endif
-    
+
     { -1, NULL, OPTV_NONE, {0}, FALSE }
 };
 
@@ -154,7 +168,6 @@ qxl_available_options (int chipid, int busid)
 }
 
 /* Having a single monitors config struct allocated on the device avoids any
- *
  * possible fragmentation. Since X is single threaded there is no danger
  * in us changing it between issuing the io and getting the interrupt to signal
  * spice-server is done reading it.
@@ -186,11 +199,9 @@ unmap_memory_helper (qxl_screen_t *qxl)
 static void
 map_memory_helper (qxl_screen_t *qxl)
 {
-    qxl->ram = calloc (RAM_SIZE, 1);
-    qxl->ram_size = RAM_SIZE;
+    qxl->ram = calloc (qxl->ram_size, 1);
     qxl->ram_physical = qxl->ram;
-    qxl->vram = calloc (VRAM_SIZE, 1);
-    qxl->vram_size = VRAM_SIZE;
+    qxl->vram = calloc (qxl->vram_size, 1);
     qxl->vram_physical = qxl->vram;
     qxl->rom = calloc (ROM_SIZE, 1);
     
@@ -209,6 +220,8 @@ unmap_memory_helper (qxl_screen_t *qxl)
 	pci_device_unmap_range (qxl->pci, qxl->vram, qxl->pci->regions[1].size);
     if (qxl->rom)
 	pci_device_unmap_range (qxl->pci, qxl->rom, qxl->pci->regions[2].size);
+    if (qxl->io)
+	pci_device_close_io (qxl->pci, qxl->io);
 #else
     if (qxl->ram)
 	xf86UnMapVidMem (scrnIndex, qxl->ram, (1 << qxl->pci->size[0]));
@@ -241,6 +254,9 @@ map_memory_helper (qxl_screen_t *qxl)
                           qxl->pci->regions[2].size, 0,
                           (void **)&qxl->rom);
     
+    qxl->io = pci_device_open_io(qxl->pci,
+                                qxl->pci->regions[3].base_addr,
+                                qxl->pci->regions[3].size);
     qxl->io_base = qxl->pci->regions[3].base_addr;
 #else
     qxl->ram = xf86MapPciMem (scrnIndex, VIDMEM_FRAMEBUFFER,
@@ -278,7 +294,6 @@ qxl_unmap_memory (qxl_screen_t *qxl)
     if (qxl->mem)
     {
 	qxl_mem_free_all (qxl->mem);
-	qxl_drop_image_cache (qxl);
 	free(qxl->mem);
 	qxl->mem = NULL;
     }
@@ -349,7 +364,6 @@ qxl_resize_surface0 (qxl_screen_t *qxl, long surface0_size)
 	surfaces = qxl_surface_cache_evacuate_all (qxl->surface_cache);
 	qxl_io_destroy_all_surfaces (qxl); // redundant?
 	qxl_io_flush_release (qxl);
-	qxl_drop_image_cache (qxl);
 	qxl_dump_ring_stat (qxl);
 	qxl_surface_cache_replace_all (qxl->surface_cache, surfaces);
 #else
@@ -380,7 +394,7 @@ qxl_map_memory (qxl_screen_t *qxl, int scrnIndex)
     
     xf86DrvMsg (scrnIndex, X_INFO, "command ram at %p (%d KB)\n",
                 (void *)((unsigned long)qxl->ram + qxl->rom->surface0_area_size),
-                (qxl->rom->num_pages * getpagesize () - qxl->rom->surface0_area_size) / 1024);
+                (qxl->rom->num_pages * getpagesize ()) / 1024);
     
     xf86DrvMsg (scrnIndex, X_INFO, "vram at %p (%ld KB)\n",
                 qxl->vram, qxl->vram_size / 1024);
@@ -516,7 +530,6 @@ qxl_create_primary(qxl_screen_t *qxl)
 Bool
 qxl_resize_primary_to_virtual (qxl_screen_t *qxl)
 {
-    ScreenPtr pScreen;
     long new_surface0_size;
 
     if ((qxl->primary_mode.x_res == qxl->virtual_x &&
@@ -552,9 +565,9 @@ qxl_resize_primary_to_virtual (qxl_screen_t *qxl)
     qxl->primary = qxl_create_primary(qxl);
     qxl->bytes_per_pixel = (qxl->pScrn->bitsPerPixel + 7) / 8;
     
-    pScreen = qxl->pScrn->pScreen;
-    if (pScreen)
+    if (qxl->screen_resources_created)
     {
+        ScreenPtr pScreen = qxl->pScrn->pScreen;
 	PixmapPtr root = pScreen->GetScreenPixmap (pScreen);
 
         if (qxl->deferred_fps <= 0)
@@ -631,6 +644,7 @@ qxl_create_screen_resources (ScreenPtr pScreen)
     qxl_create_desired_modes (qxl);
     qxl_update_edid (qxl);
     
+    qxl->screen_resources_created = TRUE;
     return TRUE;
 }
 
@@ -645,9 +659,13 @@ spiceqxl_screen_init (ScrnInfoPtr pScrn, qxl_screen_t *qxl)
 	qxl->spice_server = xspice_get_spice_server ();
 	xspice_set_spice_server_options (qxl->options);
 	qxl->core = basic_event_loop_init ();
-	spice_server_init (qxl->spice_server, qxl->core);
+	if (spice_server_init (qxl->spice_server, qxl->core) < 0) {
+            ErrorF ("failed to initialize server\n");
+            abort ();
+        }
 	qxl_add_spice_display_interface (qxl);
 	qxl_add_spice_playback_interface (qxl);
+	qxl_add_spice_smartcard_interface (qxl);
 	spiceqxl_vdagent_init (qxl);
     }
     else
@@ -745,13 +763,6 @@ qxl_screen_init (SCREEN_INIT_ARGS_DECL)
 	}
     }
     
-    qxl->uxa = uxa_driver_alloc ();
-    
-#ifndef XSPICE
-    qxl->io_pages = (void *)((unsigned long)qxl->ram);
-    qxl->io_pages_physical = (void *)((unsigned long)qxl->ram_physical);
-#endif
-    
     qxl->command_ring = qxl_ring_create ((struct qxl_ring_header *)&(ram_header->cmd_ring),
                                          sizeof (struct QXLCommand),
                                          QXL_COMMAND_RING_SIZE, QXL_IO_NOTIFY_CMD, qxl);
@@ -843,7 +854,6 @@ qxl_enter_vt (VT_FUNC_ARGS_DECL)
     if (qxl->mem)
     {
 	qxl_mem_free_all (qxl->mem);
-	qxl_drop_image_cache (qxl);
     }
     
     if (qxl->surf_mem)
@@ -1025,6 +1035,7 @@ qxl_pre_init (ScrnInfoPtr pScrn, int flags)
     unsigned int max_x, max_y;
 #ifdef XSPICE
     const char *playback_fifo_dir;
+    const char *smartcard_file;
 #endif
 
     /* In X server 1.7.5, Xorg -configure will cause this
@@ -1079,6 +1090,20 @@ qxl_pre_init (ScrnInfoPtr pScrn, int flags)
         strncpy(qxl->playback_fifo_dir, playback_fifo_dir, sizeof(qxl->playback_fifo_dir));
     else
         qxl->playback_fifo_dir[0] = '\0';
+
+    smartcard_file = get_str_option(qxl->options, OPTION_SPICE_SMARTCARD_FILE,
+               "XSPICE_SMARTCARD_FILE");
+    if (smartcard_file)
+        strncpy(qxl->smartcard_file, smartcard_file, sizeof(qxl->smartcard_file));
+    else
+        qxl->smartcard_file[0] = '\0';
+
+    qxl->surface0_size =
+        get_int_option (qxl->options, OPTION_FRAME_BUFFER_SIZE, "QXL_FRAME_BUFFER_SIZE") << 20L;
+    qxl->vram_size =
+        get_int_option (qxl->options, OPTION_SURFACE_BUFFER_SIZE, "QXL_SURFACE_BUFFER_SIZE") << 20L;
+    qxl->ram_size =
+        get_int_option (qxl->options, OPTION_COMMAND_BUFFER_SIZE, "QXL_COMMAND_BUFFER_SIZE") << 20L;
 #endif
 
     if (!qxl_map_memory (qxl, scrnIndex))
@@ -1240,7 +1265,7 @@ qxl_init_scrn (ScrnInfoPtr pScrn, Bool kms)
     pScrn->ValidMode        = NULL;
 }
 
-#ifdef XF86DRM_MODE
+#if defined(XF86DRM_MODE) && !defined(XSPICE)
 static char *
 CreatePCIBusID(const struct pci_device *dev)
 {
@@ -1297,12 +1322,6 @@ qxl_probe (struct _DriverRec *drv, int flags)
     
     xf86AddEntityToScreen (pScrn, entityIndex);
     
-    return TRUE;
-}
-
-static Bool qxl_driver_func (ScrnInfoPtr screen_info_ptr, xorgDriverFuncOp xorg_driver_func_op, pointer hw_flags)
-{
-    *(xorgHWFlags*)hw_flags = (xorgHWFlags)HW_SKIP_CONSOLE;
     return TRUE;
 }
 
@@ -1385,7 +1404,65 @@ qxl_pci_probe (DriverPtr drv, int entity, struct pci_device *dev, intptr_t match
 #define qxl_probe NULL
 
 #endif
+
+#ifdef XSERVER_PLATFORM_BUS
+static Bool
+qxl_platform_probe(DriverPtr driver, int entity, int flags,
+                   struct xf86_platform_device *dev, intptr_t match_data)
+{
+    qxl_screen_t *qxl;
+    ScrnInfoPtr pScrn;
+    int scrnFlag = 0;
+
+    if (!dev->pdev)
+        return FALSE;
+
+    if (flags & PLATFORM_PROBE_GPU_SCREEN)
+        scrnFlag = XF86_ALLOCATE_GPU_SCREEN;
+
+    pScrn = xf86AllocateScreen(driver, scrnFlag);
+    if (!pScrn)
+	return FALSE;
+
+    if (xf86IsEntitySharable(entity))
+        xf86SetEntityShared(entity);
+
+    xf86AddEntityToScreen(pScrn, entity);
+
+    qxl = pScrn->driverPrivate = xnfcalloc (sizeof (qxl_screen_t), 1);
+    qxl->pci = dev->pdev;
+    qxl->platform_dev = dev;
+
+    qxl_init_scrn (pScrn, qxl_kernel_mode_enabled(pScrn, dev->pdev));
+
+    return TRUE;
+}
+#endif /* XSERVER_PLATFORM_BUS */
+
 #endif /* XSPICE */
+
+static Bool
+qxl_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, void *data)
+{
+    xorgHWFlags *hw_flags;
+
+    switch (op) {
+    case GET_REQUIRED_HW_INTERFACES:
+        hw_flags = data;
+#ifdef XSPICE
+        *hw_flags = HW_SKIP_CONSOLE;
+#else
+        *hw_flags = HW_IO | HW_MMIO;
+#endif
+        return TRUE;
+#if XORG_VERSION_CURRENT >= XORG_VERSION_NUMERIC(1,15,99,902,0)
+    case SUPPORTS_SERVER_FDS:
+        return TRUE;
+#endif
+    default:
+        return FALSE;
+    }
+}
 
 static DriverRec qxl_driver = {
     0,
@@ -1395,15 +1472,23 @@ static DriverRec qxl_driver = {
     qxl_available_options,
     NULL,
     0,
-#ifdef XSPICE
     qxl_driver_func,
+#ifdef XSPICE
     NULL,
-    NULL
+    NULL,
+    NULL,
 #else
-    NULL,
 #ifdef XSERVER_LIBPCIACCESS
     qxl_device_match,
-    qxl_pci_probe
+    qxl_pci_probe,
+#else
+    NULL,
+    NULL,
+#endif
+#ifdef XSERVER_PLATFORM_BUS
+    qxl_platform_probe,
+#else
+    NULL,
 #endif
 #endif /* XSPICE */
 };

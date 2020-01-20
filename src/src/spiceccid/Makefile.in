@@ -14,6 +14,26 @@
 
 @SET_MAKE@
 
+#  Copyright 2014 Jeremy White  for CodeWeavers, Inc.
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a
+#  copy of this software and associated documentation files (the "Software"),
+#  to deal in the Software without restriction, including without limitation
+#  on the rights to use, copy, modify, merge, publish, distribute, sub
+#  license, and/or sell copies of the Software, and to permit persons to whom
+#  the Software is furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice (including the next
+#  paragraph) shall be included in all copies or substantial portions of the
+#  Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
+#  THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+#  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+#  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -88,7 +108,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/uxa
+subdir = src/spiceccid
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -98,15 +118,50 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-LTLIBRARIES = $(noinst_LTLIBRARIES)
-libuxa_la_LIBADD =
-am_libuxa_la_OBJECTS = uxa.lo uxa-accel.lo uxa-glyphs.lo uxa-render.lo \
-	uxa-unaccel.lo uxa-damage.lo
-libuxa_la_OBJECTS = $(am_libuxa_la_OBJECTS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(libspiceccid_ladir)"
+LTLIBRARIES = $(libspiceccid_la_LTLIBRARIES)
+libspiceccid_la_LIBADD =
+am__libspiceccid_la_SOURCES_DIST = spiceccid.c
+@BUILD_SPICECCID_TRUE@am_libspiceccid_la_OBJECTS =  \
+@BUILD_SPICECCID_TRUE@	libspiceccid_la-spiceccid.lo
+libspiceccid_la_OBJECTS = $(am_libspiceccid_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+libspiceccid_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libspiceccid_la_CFLAGS) $(CFLAGS) $(libspiceccid_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@BUILD_SPICECCID_TRUE@am_libspiceccid_la_rpath = -rpath \
+@BUILD_SPICECCID_TRUE@	$(libspiceccid_ladir)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -141,8 +196,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libuxa_la_SOURCES)
-DIST_SOURCES = $(libuxa_la_SOURCES)
+SOURCES = $(libspiceccid_la_SOURCES)
+DIST_SOURCES = $(am__libspiceccid_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -325,23 +380,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-noinst_LTLIBRARIES = libuxa.la
-
-# Override these since UXA doesn't need them and the needed files aren't
-# built (in hw/xfree86/os-support/solaris) until after UXA is built
-SOLARIS_ASM_CFLAGS = ""
-AM_CFLAGS = $(CWARNFLAGS) $(XORG_CFLAGS)
-libuxa_la_SOURCES = \
-	uxa.c \
-	uxa.h \
-	uxa-accel.c \
-	uxa-glyphs.c \
-	uxa-render.c \
-	uxa-priv.h \
-	uxa-unaccel.c	\
-	uxa-damage.c	\
-	uxa-damage.h
-
+@BUILD_SPICECCID_TRUE@libspiceccid_la_LTLIBRARIES = libspiceccid.la
+@BUILD_SPICECCID_TRUE@libspiceccid_la_CFLAGS = $(LIBPCSCLITE_CFLAGS) $(LIBCACARD_CFLAGS)
+@BUILD_SPICECCID_TRUE@libspiceccid_la_LDFLAGS = $(LIBPCSCLITE_LDFLAGS) $(LIBCACARD_LDFLAGS)
+@BUILD_SPICECCID_TRUE@libspiceccid_la_SOURCES = spiceccid.c
+@BUILD_SPICECCID_TRUE@libspiceccid_ladir = @cciddir@/
 all: all-am
 
 .SUFFIXES:
@@ -355,9 +398,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/uxa/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/spiceccid/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/uxa/Makefile
+	  $(AUTOMAKE) --foreign src/spiceccid/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -376,9 +419,33 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-clean-noinstLTLIBRARIES:
-	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; \
+install-libspiceccid_laLTLIBRARIES: $(libspiceccid_la_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	@list='$(libspiceccid_la_LTLIBRARIES)'; test -n "$(libspiceccid_ladir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libspiceccid_ladir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libspiceccid_ladir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libspiceccid_ladir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libspiceccid_ladir)"; \
+	}
+
+uninstall-libspiceccid_laLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(libspiceccid_la_LTLIBRARIES)'; test -n "$(libspiceccid_ladir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libspiceccid_ladir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libspiceccid_ladir)/$$f"; \
+	done
+
+clean-libspiceccid_laLTLIBRARIES:
+	-test -z "$(libspiceccid_la_LTLIBRARIES)" || rm -f $(libspiceccid_la_LTLIBRARIES)
+	@list='$(libspiceccid_la_LTLIBRARIES)'; \
 	locs=`for p in $$list; do echo $$p; done | \
 	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
 	      sort -u`; \
@@ -387,8 +454,8 @@ clean-noinstLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
-libuxa.la: $(libuxa_la_OBJECTS) $(libuxa_la_DEPENDENCIES) $(EXTRA_libuxa_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(LINK)  $(libuxa_la_OBJECTS) $(libuxa_la_LIBADD) $(LIBS)
+libspiceccid.la: $(libspiceccid_la_OBJECTS) $(libspiceccid_la_DEPENDENCIES) $(EXTRA_libspiceccid_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libspiceccid_la_LINK) $(am_libspiceccid_la_rpath) $(libspiceccid_la_OBJECTS) $(libspiceccid_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -396,12 +463,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa-accel.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa-damage.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa-glyphs.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa-render.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa-unaccel.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uxa.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspiceccid_la-spiceccid.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -423,6 +485,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+libspiceccid_la-spiceccid.lo: spiceccid.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libspiceccid_la_CFLAGS) $(CFLAGS) -MT libspiceccid_la-spiceccid.lo -MD -MP -MF $(DEPDIR)/libspiceccid_la-spiceccid.Tpo -c -o libspiceccid_la-spiceccid.lo `test -f 'spiceccid.c' || echo '$(srcdir)/'`spiceccid.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libspiceccid_la-spiceccid.Tpo $(DEPDIR)/libspiceccid_la-spiceccid.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spiceccid.c' object='libspiceccid_la-spiceccid.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libspiceccid_la_CFLAGS) $(CFLAGS) -c -o libspiceccid_la-spiceccid.lo `test -f 'spiceccid.c' || echo '$(srcdir)/'`spiceccid.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -516,6 +585,9 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES)
 installdirs:
+	for dir in "$(DESTDIR)$(libspiceccid_ladir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -548,7 +620,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
+clean-am: clean-generic clean-libspiceccid_laLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -569,7 +641,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-libspiceccid_laLTLIBRARIES
 
 install-dvi: install-dvi-am
 
@@ -615,23 +687,24 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-libspiceccid_laLTLIBRARIES
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLTLIBRARIES cscopelist-am ctags \
-	ctags-am distclean distclean-compile distclean-generic \
+	clean-libspiceccid_laLTLIBRARIES clean-libtool cscopelist-am \
+	ctags ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am
+	install-info-am install-libspiceccid_laLTLIBRARIES install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-libspiceccid_laLTLIBRARIES
 
 .PRECIOUS: Makefile
 

@@ -1,3 +1,25 @@
+/*
+ * Copyright 2013-2014 Red Hat, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -45,6 +67,17 @@ static Bool qxl_open_drm_master(ScrnInfoPtr pScrn)
     char *busid;
     drmSetVersion sv;
     int err;
+
+#if defined(ODEV_ATTRIB_FD)
+    if (qxl->platform_dev) {
+        qxl->drm_fd = xf86_get_platform_device_int_attrib(qxl->platform_dev,
+                                                          ODEV_ATTRIB_FD, -1);
+        if (qxl->drm_fd != -1) {
+            qxl->drmmode.fd = qxl->drm_fd;
+            return TRUE;
+        }
+    }
+#endif
 
 #if XORG_VERSION_CURRENT >= XORG_VERSION_NUMERIC(1,9,99,901,0)
     XNFasprintf(&busid, "pci:%04x:%02x:%02x.%d",
@@ -153,8 +186,8 @@ Bool qxl_pre_init_kms(ScrnInfoPtr pScrn, int flags)
     if (drmmode_pre_init(pScrn, &qxl->drmmode, pScrn->bitsPerPixel / 8) == FALSE)
       goto out;
 
-    qxl->virtual_x = 1024;
-    qxl->virtual_y = 768;
+    qxl->virtual_x = pScrn->virtualX;
+    qxl->virtual_y = pScrn->virtualY;
     
     pScrn->display->virtualX = qxl->virtual_x;
     pScrn->display->virtualY = qxl->virtual_y;
@@ -202,6 +235,7 @@ qxl_create_screen_resources_kms(ScreenPtr pScreen)
     if (!uxa_resources_init (pScreen))
 	return FALSE;
     
+    qxl->screen_resources_created = TRUE;
     return TRUE;
 }
 
@@ -218,11 +252,17 @@ qxl_enter_vt_kms (VT_FUNC_ARGS_DECL)
     qxl_screen_t *qxl = pScrn->driverPrivate;
     int ret;
 
-    ret = drmSetMaster(qxl->drm_fd);
-    if (ret) {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "drmSetMaster failed: %s\n",
-		   strerror(errno));
+#ifdef XF86_PDEV_SERVER_FD
+    if (!(qxl->platform_dev &&
+            (qxl->platform_dev->flags & XF86_PDEV_SERVER_FD)))
+#endif
+    {
+        ret = drmSetMaster(qxl->drm_fd);
+        if (ret) {
+            xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+                       "drmSetMaster failed: %s\n",
+                       strerror(errno));
+        }
     }
 
     if (!xf86SetDesiredModes(pScrn))
@@ -240,6 +280,11 @@ qxl_leave_vt_kms (VT_FUNC_ARGS_DECL)
     qxl_screen_t *qxl = pScrn->driverPrivate;
     xf86_hide_cursors (pScrn);
     //    pScrn->EnableDisableFBAccess (XF86_SCRN_ARG (pScrn), FALSE);
+
+#ifdef XF86_PDEV_SERVER_FD
+    if (qxl->platform_dev && (qxl->platform_dev->flags & XF86_PDEV_SERVER_FD))
+        return;
+#endif
 
     ret = drmDropMaster(qxl->drm_fd);
     if (ret) {
@@ -264,8 +309,6 @@ Bool qxl_screen_init_kms(SCREEN_INIT_ARGS_DECL)
 	goto out;
     pScrn->displayWidth = pScrn->virtualX;
 
-    pScrn->virtualX = pScrn->currentMode->HDisplay;
-    pScrn->virtualY = pScrn->currentMode->VDisplay;
     if (!qxl_fb_init (qxl, pScreen))
 	goto out;
     

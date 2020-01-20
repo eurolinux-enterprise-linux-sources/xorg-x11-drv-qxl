@@ -47,6 +47,9 @@
 
 #include "qxl.h"
 #include "qxl_surface.h"
+
+static void drmmode_show_cursor (xf86CrtcPtr crtc);
+
 static void
 drmmode_ConvertFromKMode(ScrnInfoPtr	scrn,
 		     drmModeModeInfo *kmode,
@@ -129,6 +132,7 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 		     Rotation rotation, int x, int y)
 {
 	ScrnInfoPtr pScrn = crtc->scrn;
+	CursorPtr cursor;
 	xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
 	drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 	drmmode_ptr drmmode = drmmode_crtc->drmmode;
@@ -194,9 +198,6 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 			output_count++;
 		}
 
-		if (!xf86CrtcRotate(crtc)) {
-			goto done;
-		}
 #if XORG_VERSION_CURRENT >= XORG_VERSION_NUMERIC(1,7,0,0,0)
 		crtc->funcs->gamma_set(crtc, crtc->gamma_red, crtc->gamma_green,
 				       crtc->gamma_blue, crtc->gamma_size);
@@ -211,11 +212,13 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 		}
 		ret = drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
 				     fb_id, x, y, output_ids, output_count, &kmode);
-		if (ret)
+		if (ret) {
 			xf86DrvMsg(crtc->scrn->scrnIndex, X_ERROR,
 				   "failed to set mode: %s", strerror(-ret));
-		else
+			return FALSE;
+		} else {
 			ret = TRUE;
+		}
 
 		if (crtc->scrn->pScreen)
 			xf86CrtcSetScreenSubpixelOrder(crtc->scrn->pScreen);
@@ -248,6 +251,10 @@ done:
 		crtc->active = TRUE;
 #endif
 
+        cursor = xf86_config->cursor;
+        if (cursor)
+            drmmode_show_cursor(crtc);
+
 	return ret;
 }
 
@@ -279,7 +286,7 @@ drmmode_show_cursor (xf86CrtcPtr crtc)
 		CursorPtr cursor = xf86_config->cursor;
 		int ret;
 		ret = drmModeSetCursor2(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id, handle, 64, 64, cursor->bits->xhot, cursor->bits->yhot);
-		if (ret == -ENOSYS)
+		if (ret == -EINVAL)
 			use_set_cursor2 = FALSE;
 		else
 			return;
@@ -345,6 +352,7 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int num)
 	crtc = xf86CrtcCreate(pScrn, &drmmode_crtc_funcs);
 	if (crtc == NULL)
 		return;
+	crtc->driverIsPerformingTransform = FALSE;
 
 	drmmode_crtc = xnfcalloc(sizeof(drmmode_crtc_private_rec), 1);
 	drmmode_crtc->mode_crtc = drmModeGetCrtc(drmmode->fd, drmmode->mode_res->crtcs[num]);
@@ -513,6 +521,7 @@ drmmode_output_create_resources(xf86OutputPtr output)
 	    drmModeFreeProperty(drmmode_prop);
 	    continue;
 	}
+	drmmode_output->props[j].index = i;
 	drmmode_output->props[j].mode_prop = drmmode_prop;
 	drmmode_output->props[j].value = mode_output->prop_values[i];
 	drmmode_output->num_props++;
@@ -632,7 +641,52 @@ drmmode_output_set_property(xf86OutputPtr output, Atom property,
 static Bool
 drmmode_output_get_property(xf86OutputPtr output, Atom property)
 {
-    return TRUE;
+    drmmode_output_private_ptr drmmode_output = output->driver_private;
+    drmmode_ptr drmmode = drmmode_output->drmmode;
+    uint32_t value;
+    int err, i;
+
+    if (output->scrn->vtSema) {
+	drmModeFreeConnector(drmmode_output->mode_output);
+	drmmode_output->mode_output =
+	    drmModeGetConnector(drmmode->fd, drmmode_output->output_id);
+    }
+
+    if (!drmmode_output->mode_output)
+	return FALSE;
+
+    for (i = 0; i < drmmode_output->num_props; i++) {
+	drmmode_prop_ptr p = &drmmode_output->props[i];
+	if (p->atoms[0] != property)
+	    continue;
+
+	value = drmmode_output->mode_output->prop_values[p->index];
+
+	if (p->mode_prop->flags & DRM_MODE_PROP_RANGE) {
+	    err = RRChangeOutputProperty(output->randr_output,
+					 property, XA_INTEGER, 32,
+					 PropModeReplace, 1, &value,
+					 FALSE, FALSE);
+
+	    return !err;
+	} else if (p->mode_prop->flags & DRM_MODE_PROP_ENUM) {
+	    int j;
+
+	    /* search for matching name string, then set its value down */
+	    for (j = 0; j < p->mode_prop->count_enums; j++) {
+		if (p->mode_prop->enums[j].value == value)
+		    break;
+	    }
+
+	    err = RRChangeOutputProperty(output->randr_output, property,
+					 XA_ATOM, 32, PropModeReplace, 1,
+					 &p->atoms[j+1], FALSE, FALSE);
+
+	    return !err;
+	}
+    }
+
+    return FALSE;
 }
 
 static const xf86OutputFuncsRec drmmode_output_funcs = {
@@ -818,8 +872,9 @@ drmmode_xf86crtc_resize (ScrnInfoPtr scrn, int width, int height)
 		xf86CrtcPtr crtc = xf86_config->crtc[i];
 		if (!crtc->enabled)
 			continue;
-		drmmode_set_mode_major(crtc, &crtc->mode, crtc->rotation,
-				       crtc->x, crtc->y);
+		if (!drmmode_set_mode_major(crtc, &crtc->mode, crtc->rotation,
+                                            crtc->x, crtc->y))
+                    goto fail;
 	}
 
 	{

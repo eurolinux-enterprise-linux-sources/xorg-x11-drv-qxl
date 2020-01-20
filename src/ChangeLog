@@ -1,3 +1,1106 @@
+commit 8d344cf49fdb021ab80354eaaa57a419a6746a56
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Dec 19 17:36:36 2016 +0100
+
+    NEWS: Xspice now works with X.org 1.19
+
+commit a283cda0c4dbacb1d4b398b45f271275a3d1121a
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Dec 19 17:28:41 2016 +0100
+
+    Revert "Remove unused 'event_mask' field"
+    
+    This reverts commit bfb724076d575d5a49d08913b86885688251a176.
+    This was pushed by mistake.
+
+commit bfb724076d575d5a49d08913b86885688251a176
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Dec 19 10:51:09 2016 +0100
+
+    Remove unused 'event_mask' field
+    
+    With the Xorg 1.19 codepaths, the 'event_mask' field of SpiceWatch is
+    only useful for sanity checking the event we get from Xorg. This commit
+    assumes Xorg is sane, and removes this extra field.
+
+commit 009776a8a3fb096b11ec95033d1e1a366e26f188
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Thu Dec 15 10:47:51 2016 +0100
+
+    Xspice: Replace malloc/strdup use with xnfalloc/xnfstrdup
+    
+    spiceqxl_*.c files are Xspice-only code. They contain a few uses of
+    malloc/strdup, and none of these are checked for failure. It's better to
+    replace these with xfnalloc/xnfstrdup which are provided by the X server
+    and cannot fail (aborts on failure).
+    
+    Signed-off-by: Christophe Fergeau <cfergeau@redhat.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit db353f559d32119e811eab71a9d3128847a64609
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Wed Dec 14 10:37:03 2016 +0100
+
+    xspice: Adjust to X.org 1.19 changes
+    
+    In newer X.org versions, it's no longer supported to modify the set of
+    FDs passed to a BlockHandler method to get notified when the FD has data
+    to be read. This was limited anyway as we could only get read events
+    this way, and had to do our own polling to get notified about socket
+    writeability.
+    
+    Starting from xserver 1.19, the supported way of doing this is to use
+    the SetNotifyFd/RemoveNotifyFd API, which is actually a much better way
+    as it matches very well the 'watch' API spice-server expects Xspice to
+    implement.
+    
+    This commit switches to that new API, which removes the need for
+    RegisterBlockAndWakeupHandlers().
+    
+    Signed-off-by: Christophe Fergeau <cfergeau@redhat.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+    Acked-by: Uri Lublin <uril@redhat.com>
+
+commit 13d4afc1ba55eaed3e7ed4da8c948d3f334598d3
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Thu Apr 14 18:05:59 2016 +0200
+
+    build-sys: Update for 0.1.5 release
+
+commit ce00ab5df8cee45b0dc029973d6eeb937547144d
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Thu Dec 8 09:15:55 2016 +0100
+
+    spiceqxl: Improve the Xspice and Xorg configuration option descriptions
+    
+    Group the options more logically and improve their descriptions.
+    Add the missing help strings for Xspice --help and standardize the
+    messages to start with a lowercase and not end with a period.
+    In the Xorg configuration, always show the default in the
+    commented-out sample.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+    Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+
+commit 7657ffb8a5cba20f221c2af93e0c83b81356053c
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Fri Oct 28 11:56:47 2016 +0200
+
+    build: Error out when enabling xspice with X.Org 1.19
+    
+    xspice needs to be updated to cope with some X.Org 1.19 API changes,
+    better to make that explicit at configure time rather than letting
+    people discover the hard way (it builds with warnings but will not work)
+    that it's broken.
+
+commit 4783c5439552a461516a6d917765000a9b60c295
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Fri Oct 28 10:54:55 2016 +0200
+
+    Fix "calles" typo in comment
+
+commit 4fbe63601d5806814b9bcaef07349759a4b0834d
+Author: Dave Airlie <airlied@redhat.com>
+Date:   Fri Aug 5 16:58:04 2016 +0200
+
+    Disable composite/a8 surfaces for KMS
+    
+    This should help with bug #974198
+
+commit 0daf59bd23b8b92b69a28b7bb1fa5961a8e86d97
+Author: Dave Airlie <airlied@redhat.com>
+Date:   Fri Aug 5 16:55:31 2016 +0200
+
+    Disable surfaces when KMS is used
+    
+    This is not working properly at the moment.
+
+commit 4d7160c49614c9132e7b7ae4ccfda952daffeefb
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Oct 28 16:50:18 2016 +0200
+
+    spiceqxl: Remove an unused macro
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 9739b6a60459f48044d7ef7fff393e631bcef5bf
+Author: Hans de Goede <hdegoede@redhat.com>
+Date:   Tue Oct 4 13:29:29 2016 +0200
+
+    Fix crash caused by attempting to access the screen pixmap before it is created
+    
+    qxl_resize_primary_to_virtual() was using pScrn->pScreen != NULL to check
+    if createScreenResources has been called. But starting with xserver 1.19
+    pScrn->pScreen is non NULL even before createScreenResources is called,
+    causing an invalid access to the screenPixmap in
+    qxl_resize_primary_to_virtual().
+    
+    This commit fixes this.
+    
+    BugLink: https://bugzilla.redhat.com/show_bug.cgi?id=1381045
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+    Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+
+commit e13d28ee5d8724fc4b22f26bce01a7d36355f272
+Author: Owen W. Taylor <otaylor@fishsoup.net>
+Date:   Fri Aug 26 11:44:55 2016 -0400
+
+    Check for either xfont.pc or xfont2.pc
+    
+    More recent versions of Xfont have a different API (with namespacing
+    for libXfont functions.) Check for xfont2.pc and if found, use that, and
+    use the new API. The rational for preferring libXfont2 is that as a recent
+    change the xserver module looks for and requires libXfont2, and it's better
+    not to have both versions of the library in process.
+
+commit 2b7e4fb2c93a2061b79ac8fb37628698d49618cc
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Wed Jul 6 16:17:52 2016 +0200
+
+    Xspice: Add --video-codecs to specify encoder and codec preferences
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+    Acked-by: Jeremy White <jwhite@codeweavers.com>
+
+commit 14ff3c26e204d334a9c110debfaa2ef8cab97bf6
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Thu Jul 7 15:23:56 2016 +0200
+
+    spiceqxl: Add SpiceVideoCodecs to specify video codec preference
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+    Signed-off-by: Jeremy White <jwhite@codeweavers.com>
+
+commit edd1a409f879f74193c2789f50240005bcf00783
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Tue Apr 5 18:17:26 2016 +0200
+
+    xspice: Don't create Xorg time in timer_add
+    
+    SpiceCoreInterface::timer_add() is used by spice-server for integration
+    with external mainloops. timer_add() is only meant to create a disabled
+    timer, this timer will then be started with a call to timer_start().
+    
+    The current implementation in Xspice creates a timer which will trigger
+    in a very long time, assuming this will never happen. This 'forever' is
+    1,000,000 seconds, which amounts to 11 days. After that time, some
+    timers which are meant to be disabled (eg migration related timers in
+    spice-server) fire, then causing a crash with some failed assertions.
+    
+    Instead of creating the X timer right away in timer_add(), we can wait
+    until timer_start() is called before starting it, which avoids this
+    issue.
+
+commit 76fd0a374f6879fba6f1d281d06003937ad4980c
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Mar 18 15:32:22 2016 +0100
+
+    spiceqxl_audio: Stop the playback channel if there is nothing to play
+    
+    This lets the client free the audio resources when an audio application
+    is not actually playing anything, typically because playback is paused.
+    This matches QEMU's behavior.
+    As a side benefit it stops the client's mm-time from being stuck (due
+    to the audio backend's delay updates being applied to the mm-time of
+    the last audio message) which lets video streams play in this situation.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 5f5b502ecdae7fb4e37e9285be9ee7a2107aff28
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Mar 18 15:32:17 2016 +0100
+
+    spiceqxl_audio: Only start the playback channel when fifos are present
+    
+    This lets the client free the audio resources when they are not needed.
+    This matches QEMU's behavior.
+    As a side benefit it stops the client's mm-time from being stuck (due
+    to the audio backend's delay updates being applied to the mm-time of
+    the last audio message, that is the channel's creation) when no audio
+    application is running.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 5671929aecb742e7aaee4f4caf5e00cff344769a
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Mar 18 15:32:11 2016 +0100
+
+    spiceqxl_audio: Fix a race condition in the audio playback
+    
+    can_feed() depends on the time and thus could return false in
+    process_fifos(), causing it to stop reading from the fifos, and then
+    true in watch_or_wait() so that the wall_timer would not be set, but
+    the fifos would not be watched either because they already contain
+    data to process. The audio playback would then come to a stop.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 0d20d7d8425f397bdb15288747321fbc6d01820e
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Mar 18 15:32:07 2016 +0100
+
+    spiceqxl_audio: Only condense the fifo list when one has been closed
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 692df47b261d38dcd2df23d855032a262359fd5e
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Fri Mar 18 15:32:03 2016 +0100
+
+    spiceqxl_audio: Let the audio play when no client is connected
+    
+    Simply keep reading from the fifos in reasonably sized chunks.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 91ee004cda2fb31de75508c44710ac09256edab4
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Mon Jan 11 02:21:50 2016 +0100
+
+    server: Convert qxl->monitors_config to a QXLPHYSICAL using physical_address()
+    
+    This avoids compilation errors with -Werror on 32 bit systems and is
+    more correct than a direct cast.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 67d8beb98cb81d88273ba12f07a270bed9787473
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Wed Nov 25 13:36:00 2015 -0600
+
+    Optimize dfps mode to send updates only for the primary pixmap.
+    
+    We don't need to update the screen when we use a temporary or
+    offscreen pixmap.
+
+commit a8213444463690e4a7a851bd0a41008818bc5c97
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Wed Nov 25 11:47:00 2015 -0600
+
+    Provide an implementation for put_image in dfps mode.
+    
+    This prevents the fallback from calling prepare_access
+    against the whole screen, which in turn keeps us from
+    transmitting the whole screen more than necessary.
+
+commit f448032adebac799830f3ed275a334393c77cef1
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Nov 9 10:08:57 2015 -0600
+
+    XSpice: auto generate temp files for the vdagent process.
+    
+    Signed-off-by: Jeremy White <jwhite@codeweavers.com>
+
+commit b86e2c1b40f6aff42a03dfce9a099c4742a6ee8d
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Nov 9 10:08:56 2015 -0600
+
+    Revise Xspice --auto to use a temporary directory.
+    
+    We will put auto session related items in that directory.
+    
+    Signed-off-by: Jeremy White <jwhite@codeweavers.com>
+
+commit 2448bd2125260376f5ecb7e7dac2a9ef8f953c75
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Wed Oct 21 13:25:11 2015 -0500
+
+    XSpice: allow the udcs socket to be specified, rather than hard coded.
+
+commit 8aabc4ae6150b169cac99285d144b04474e05c0b
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Wed Oct 21 13:18:44 2015 -0500
+
+    Add support for a --numheads option to the Xspice script.
+
+commit 88c3df4a78a165afa7ddde851f047bbb125c1c7d
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Nov 2 16:07:43 2015 -0600
+
+    Xspice: handle parameters with value 0, allows --port 0
+    
+    As of commit f73ca7e4cc090772652611a4e2b8b95ae64319bc, you can now
+    disable the regular port by specifying 0.  This change to the Xspice
+    script permits us to take advantage of that change.
+
+commit f73ca7e4cc090772652611a4e2b8b95ae64319bc
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Oct 30 10:44:17 2015 -0500
+
+    Set the regular spice port only once, and then only if it
+    is not disabled.
+    
+    This fixes a bug where Xspice had to listen on two ports, even in an
+    SSL only configuration.
+
+commit 3475eb2cd7b251dd49989c079a2452df67a85b14
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Oct 2 11:17:33 2015 -0500
+
+    Document a number of missing XSpice vdagent options in the example xorg.conf.
+    
+    Also revise the expression of the default value to be consistent.
+
+commit f9652ebbe45d5f313633bd41f15a55cad59b7a68
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Oct 19 14:19:36 2015 -0500
+
+    Correct the XSpice AgentMouse configuration options.
+    
+    Since the introduction of vdagent support in commit
+    294daff7ea930f338ec6d77ec3465b6f727c168e, the
+    SpiceAgentMouse setting has not really operated correctly.
+    
+    That is, if SpiceVdagentEnabled was true, the value
+    of SpiceAgentMouse was overridden.
+    
+    This patch corrects that.
+    
+    It also shifts the default; that matches qemu, and effectively
+    preserves the current default behavior.
+
+commit 6fa56701128d3050945d7fdf0eae7b74cb34097a
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Oct 19 14:11:58 2015 -0500
+
+    Only watch the uinput channel when an agent is connected.
+    
+    Otherwise, you constantly spin loop, getting a return code of 0,
+    and pegging CPU usage at 100%.
+
+commit 6e588d2a2fe824f8306bfccc647b25fd49841af2
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Oct 19 13:57:59 2015 -0500
+
+    Add and remove the vdagent interface as the vdagent
+    actually connects and disconnects.
+    
+    This means that we do not attempt to use agent mouse
+    mode if there is no connected agent.
+    
+    It fixes a bug which would occur if an agent disconnected
+    after session startup which would result in having no
+    useful mouse.
+
+commit ebd5ef7c18d7c361a31d530b307d36217cc68428
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Oct 16 09:16:44 2015 -0500
+
+    Bug fix: libcacard headers and libraries were not correctly used.
+    
+    Also shift to libspiceccid_la_CFLAGS.
+
+commit dcd02ad2b3b786c6a953e0e02848ae115975fbbf
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Mon Aug 31 15:27:11 2015 +0200
+
+    spiceqxl: Fix formatting of a couple of function calls.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit b8f8233d45a4315d4347d59fe0f1987df8d79b76
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Mon Aug 31 15:26:43 2015 +0200
+
+    Xspice: Don't set defaults for the options.
+    
+    Otherwise they override Spice server's real builtin defaults, the Xorg configuration file settings, and even the XSPICE_XXX environment variables.
+    For instance, without this patch calling Xspice _without_ the '--streaming-video' option forces this setting to 'filter', overriding the XSPICE_STREAMING_VIDEO environment variable and the SpiceStreamingVideo spiceqxl.xorg.conf setting.
+    Note that this does not change the option defaults (the Xspice ones matched the spice server ones).
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 7dbf51e3ecb0a73b87b88d143bedf27e70cbcfa7
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Mon Aug 31 15:29:39 2015 +0200
+
+    spiceqxl: Reject invalid boolean values, just like for other options.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit d3260f741934be08dc033d8d818c383ca42d02ae
+Author: Francois Gouget <fgouget@codeweavers.com>
+Date:   Mon Aug 31 15:29:29 2015 +0200
+
+    spiceqxl: Recognize the same set of boolean values as in xorg.conf.
+    
+    Issue a warning for invalid values but treat them as TRUE for backward compatibility.
+    
+    Signed-off-by: Francois Gouget <fgouget@codeweavers.com>
+
+commit 2f4a2fe26fb48b4a093426cf4efe14664f779501
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Jan 4 14:22:28 2015 +0200
+
+    uxa: fix compiler warnings (initialize width, height, [xy]Dst_copy)
+    
+    Some compiler warnings for example:
+    uxa-glyphs.c:1045: warning: ‘width’ may be used uninitialized in this function
+    uxa-glyphs.c:1045: warning: ‘height’ may be used uninitialized in this function
+    uxa-render.c:1090: warning: ‘xDst_copy’ may be used uninitialized in this function
+    uxa-render.c:1090: warning: ‘yDst_copy’ may be used uninitialized in this function
+    
+    I think these can never actually happen as the code protects use of
+    those uninitialized variables, but I'd not "argue" with the compiler.
+
+commit e8afc2cd2406fa8ce95d277b18a692a65a833295
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Aug 10 17:40:31 2015 +0200
+
+    Xspice: Fix 'erorr' typo in error message
+
+commit a9fa26cf13c5b02101bc7eb111a0dfe092542977
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Jun 22 19:17:25 2015 +0200
+
+    Add note about deprecated setting of mm_time
+    
+    spice-server now ignores this mm_time value and sets it itself as it
+    maintains its own timer (see spice-server commit c541d7e2 'Remove guest
+    side video time-stamping')
+
+commit 95f69ec6ed6c59e4a65cdb8ddb0203eb2890ffa6
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Fri May 29 15:12:32 2015 +0200
+
+    Add missing licence header
+
+commit a184774ad161031cceed264d62d48ebd019ac800
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Aug 3 20:12:05 2015 +0200
+
+    Fix compilation with newer Xorg versions
+    
+    Xorg 1.18 stopped exporting some xfont related symbols in its
+    headers/shared libraries, which causes QXL to fail to build:
+    
+    uxa-damage.c:947:5: error: implicit declaration of function 'QueryGlyphExtents' [-Werror=implicit-function-declaration]
+         QueryGlyphExtents(font, charinfo, n, &extents);
+    
+    The missing definition can be found in xfont, so this commit addes the
+    needed configure.ac checks and includes.
+    Note that dixfontstr.h must be included before the xfont headers or this
+    will cause compile-time warnings on older Xorg versions (eg 1.17)
+
+commit 83e00bb5f9b74c0d7059c189d747ec3c24c7798a
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Tue Aug 4 17:36:12 2015 +0200
+
+    Use <> for system-includes
+    
+    These headers come from /usr/include/xorg/ so it's clearer if they are
+    included using <>. While at it, I've reordered them alphabetically.
+
+commit e765cc5ea35bfab017201307b280368400cf1d10
+Author: Javier Celaya <javier.celaya@flexvdi.com>
+Date:   Fri Jun 19 14:05:10 2015 +0200
+
+    Fix drawable mm_time with KMS
+    
+    When KMS is enabled, the mm_time value of a QXLDrawable is undefined.
+    This results in severe synchronization problems. This patch sets it to
+    zero to force the spice-server to use the local clock.
+
+commit d99213d4a6fe407d4392dcb78c01f58c03b97086
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Wed May 27 13:56:20 2015 -0500
+
+    Do not process watches on select() error.
+    
+    This enables a kill of an Xorg process to propagate further.
+    Without this, the read masks would be set, and we could end up
+    blocking in an accept() call and not exiting from the signal.
+
+commit 8babd05ea9c196390570928a386f5a17a8a37fb9
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Wed May 13 19:10:06 2015 +0200
+
+    kms: do not overwrite screen virtualX/Y
+    
+    The pScrn->currentMode is the resolution of the first monitor,
+    not the resolution of the whole virtual screen.
+    
+    This fixes restarting X when several monitors are enabled.
+
+commit 16ac8fa8fac56a01050ffa9f0978ae04b1a1efa4
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Wed May 13 18:12:26 2015 +0200
+
+    kms: initialize primary surface to screen virtual size
+    
+    The pScrn->virtualX/Y are set after drmmode_pre_init(), use that
+    resolution instead of hard-coded 1024x768.
+    
+    This fixes rendering glitches when restarting X server with
+    different primary size than actual monitor modes.
+
+commit c1e88427d1763bf9bbf9f2dd738980cee644443f
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Apr 30 14:32:16 2015 +0200
+
+    Use pci_io_write8 instead of outb
+    
+    This ensures better portability as some arches (eg aarch64) don't have
+    outb.
+    On linux pci_io_* try to open the sysfs map file corresponding to the
+    I/O port range, which the kernel translates arch-appropriately.  If
+    there is no such file then it'll try to use port instructions if that's
+    a thing the architecture has.  So you only need one path, pciaccess
+    exists to get the portability right for you.
+    
+    https://bugzilla.redhat.com/show_bug.cgi?id=1201877
+
+commit 0d96e0f91ecdac46232890ab74b2e624bb4b8bd1
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Wed Dec 17 17:06:16 2014 +0100
+
+    Remove stray blank comment line
+
+commit 5466448f147cd6ec21e11eb2c7d02d541f7667d2
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Wed Dec 17 17:05:58 2014 +0100
+
+    Remove unused variables
+
+commit fc5327bc568a06ed27b536453d26214fad4409c8
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Mon Mar 30 17:52:52 2015 +0200
+
+    Prepare for 0.1.4 release
+
+commit 6af2315d59c6c7f54199c5a264eef90b7dd82cfe
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Wed Apr 1 13:54:25 2015 +0200
+
+    build-sys: use regular variables for LIBUDEV_CFLAGS
+    
+    No need for hardcoded variant here.
+
+commit dce9cf050f1d76a668d2cffc729380e3992607ac
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Wed Apr 1 13:53:40 2015 +0200
+
+    build-sys: misc aligning and trailing ws
+
+commit e4597f711d9e7586adf5fc58887bc3407869361d
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Thu Jan 29 14:09:40 2015 +0100
+
+    Remove image cache
+    
+    While looking for leaks, I realized that the image cache looks
+    quite suspicious.
+    
+    Not only it leaks when qxl_drop_image_cache() is called,
+    since all the allocated image_info_t references are lost.
+    But it is also useless:  "The name implies it's a cache of some
+    sort, but data is only added to it. The only time data is looked up in
+    that cache is when it needs to be destroyed, and this is not done
+    correctly and causes leaks. Since the cached data is never used and
+    since it's leaky, it's better to remove it altogether"
+
+commit 2bed9bffd92a1422a460dad37e5fffe820ef2df3
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Tue Mar 24 14:13:30 2015 +0100
+
+    Don't leak ARGB cursor data bo
+    
+    qxl_load_cursor_argb() owns 2 references on the cursor_bo it creates:
+    - one from the call to bo_alloc()
+    - the second from a call to bo_output_bo_reloc()
+    
+    qxl_garbage_collect() release one of these refs, but the other one is
+    never released, so ARGB cursor bos are leaked. This can cause out of
+    memory issues, for example when running EL6 anaconda installer on a 2TB
+    disk image (see bug https://bugzilla.redhat.com/show_bug.cgi?id=1199355
+    ).
+    
+    This commit release the extra ref right after calling push_cursor().
+    This is similar to what is done in qxl_surface_put_image().
+
+commit c2879c19331bba3670b01942b13f03cec678a91a
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Fri Mar 20 14:23:51 2015 +0100
+
+    build-sys: Fix indentation of trailing \ in Makefile.am
+    
+    Make sure they are indented with tabs and aligned.
+
+commit 8744beef5a0abacddf1445b1ecc049f42fa14db2
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Fri Mar 20 14:21:05 2015 +0100
+
+    build-sys: Add spiceqxl_smartcard.h to _SOURCES
+    
+    This file needs to be listed in Makefile.am otherwise it will not be
+    added to the tarballs make dist generates.
+
+commit 2dea0e31cd8d33a852d844a51b164873863ad7f0
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Mar 13 11:25:35 2015 -0500
+
+    Spice CCID:  Handle server termination.
+
+commit 1cc78bec229dc1ac3867ae3e276d1ca4a309c2c3
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Jan 30 08:52:46 2015 -0600
+
+    Support IFD_RESET, print a diagnostic for unknown power sequences.
+    
+    Also add a message for apdus that come in while a reader is inactive.
+    
+    Remove an obviously unnecessary if stanza.
+
+commit 6f45e758f0a5d7915144250c4032e1ac4fb8c29f
+Author: Uri Lublin <uril@redhat.com>
+Date:   Mon Jan 19 00:17:15 2015 +0200
+
+    README.xspice: clone and install xkeyboard-config
+    
+    Instead of copying /usr/share/X11/xkb
+
+commit e7b315dfe468eb6212e30c41a61e72486017ee57
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Jan 4 18:12:25 2015 +0200
+
+    README.xspice: clone more repos, add some script lines and more
+    
+    This helps build on a RHEL-6 machine
+
+commit 3a81e5faf0d386885d81ec3f03ad644b93ac0250
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Jan 4 14:20:46 2015 +0200
+
+    vmc_read: rename variable "read" to "nbytes"
+    
+    This fixes the following compiler warning.
+    spiceqxl_vdagent.c:49: warning: declaration of ‘read’ shadows a global declaration
+    /usr/include/unistd.h:357: warning: shadowed declaration is here
+
+commit 7486ea4dfc7b4c26ef85a1a8a97d54b1cb17ed8b
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Jan 4 14:19:57 2015 +0200
+
+    playback_dir_changed: rename variable "index" to "offset"
+    
+    This fixes the following compiler warning.
+    spiceqxl_audio.c: In function ‘playback_dir_changed’:
+    spiceqxl_audio.c:386: warning: declaration of ‘index’ shadows a global declaration
+
+commit dde71a523676ea825019786777d6942aecd62f85
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Dec 28 16:58:45 2014 +0200
+
+    scripts/Xspice: run vdagentd with -f command line option (fake uinput)
+    
+    From: "Charles Ricketts <githlar@gmail.com>"
+
+commit 0b0cb8e3f8fbb06ab292fa24c2b4e9893a726ca6
+Author: Uri Lublin <uril@redhat.com>
+Date:   Mon Jan 5 12:45:03 2015 +0200
+
+    scripts/Xspice: add default spice-vdagent executable names
+
+commit e0db34c29c12501bb62eccb66de1cbe0ea0067bd
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Dec 28 16:57:41 2014 +0200
+
+    scripts/Xspice: better error messages for missing vdagent binaries
+    
+    Also added a check for the case variables are uninitialized (or
+    when the executables are not found and which returns None)
+
+commit c096f37454332fa897b5a875e0c3a9fb7d09deb9
+Author: Uri Lublin <uril@redhat.com>
+Date:   Sun Jan 18 14:43:35 2015 +0200
+
+    scripts/Xspice: which: warn if executable is not found
+    
+    Also handle None parameter case.
+
+commit cd96284cf17524a3618ae542d53fa3c987e85a75
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Dec 15 16:24:45 2014 -0600
+
+    Enable smartcard support for XSpice.
+    
+    This is done by creating a Unix domain socket to which smartcard
+    messages are transferred, using the vscard protocol.
+    
+    A further system library, spiceccid, is used to provide an interface into
+    pcsc-lite, specifically the pcsc-lite daemon, so that regular Unix applications
+    can access the passed through smartcard information.
+    
+    Signed-off-by: Jeremy White <jwhite@codeweavers.com>
+
+commit 9368451e74c77b3d04383b5b98a1d71e6f12eb55
+Author: Jonathon Jongsma <jjongsma@redhat.com>
+Date:   Thu Nov 6 15:40:59 2014 -0600
+
+    Update drm properties correctly
+    
+    When connector properties got changed, those changes were not being
+    propagated to user-space. This pushes those changes up so that e.g. new
+    "suggested X|Y" properties can be used to help lay out multiple displays
+    properly. This code is based on similar code from the nouveau driver.
+
+commit 97c7c183d7d8585d93eab4f13645acb2d47ca763
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Mon Nov 3 01:14:48 2014 +0100
+
+    Xspice: fail if server can't be initialized
+    
+    Failure to bind to port should be an error, not a warning.
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=65185
+
+commit f4964c5666fb61f513d563a5a12463bed1119ea4
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Thu Oct 30 14:45:31 2014 +0100
+
+    xf86-video-qxl 0.1.3
+
+commit 69a273a27242534ebf5535a886e26adfc8f608a0
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Oct 13 18:04:16 2014 -0500
+
+    Revise the XSpice audio processing to avoid the use of pthreads.
+    
+    The initial implementation used a separate thread to drive the audio
+    playback channel.  But if you have adaptive streaming turned on,
+    you will eventually get a update_client_playback_latency message on the
+    display channel (which in the Xspice case is being driven by the main,
+    Xorg, thread).
+    
+    After enough time you would get a thread collision and bad things
+    would result.  I saw this manifest as infinite spin loops in snd_send_data.
+    
+    This patch eliminates the use of threading altogether, making everything
+    run in the main Xorg thread using watches and timers, eliminating the
+    possibility of thread collision.
+
+commit 0703b14280733142016ae45435a1e54e327dbac5
+Author: Christophe Fergeau <cfergeau@redhat.com>
+Date:   Wed Oct 22 12:10:46 2014 +0200
+
+    drmmode: Fix compilation warning
+    
+    One recent change introduced a gcc compilation warning:
+    
+      CC       qxl_drmmode.lo
+    qxl_drmmode.c: In function 'drmmode_set_mode_major':
+    qxl_drmmode.c:251:9: error: ISO C90 forbids mixed declarations and code [-Werror=declaration-after-statement]
+             CursorPtr cursor = xf86_config->cursor;
+    
+    This commit moves the CursorPtr declaration to the top of the
+    drmmode_set_mode_major function in order to fix that warning.
+
+commit 57ec67c56ea05480eef2df730cef8b0dc790d8ba
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Thu Oct 16 11:19:05 2014 +0200
+
+    Remove call to CrtcRotate()
+    
+    Our driver doesn't support rotation, and calling CrtcRotoate()
+    may result in crash. Let's remove that useless call.
+    
+    Fixes:
+    http://bugzilla.redhat.com/1067709
+
+commit 04f2a5096718b462ca7a38973fdb72df32b21850
+Author: Marc-Andre Lureau <marcandre.lureau@redhat.com>
+Date:   Sat Oct 11 21:29:35 2014 +0200
+
+    Check qxl_download_box() arguments
+    
+    Sending empty region is invalid and the server returns an error (this
+    can be triggered by typing space in xfig)
+    
+    Without the previous patch, error was ignored and the driver would enter
+    an infinite loop.
+    
+    Assert on valid arguments, and return early if the given region is empty.
+    
+    Fixes:
+    http://bugzilla.redhat.com/1151559
+
+commit 41838c66d84c567c086ad236410b659d326ec360
+Author: Marc-Andre Lureau <marcandre.lureau@redhat.com>
+Date:   Fri Oct 10 19:22:03 2014 +0200
+
+    Assert on QXL_INTERRUPT_ERROR
+    
+    When qemu qxl device reaches a guest bug, it might set the
+    QXL_INTERRUPT_ERROR interrupt flag, and stops processing guest
+    commands. Therefore, it makes sense to check that flag in the guest and
+    quit, instead of running in infinite loop in X and consuming CPU.
+    
+    Related to:
+    https://bugzilla.redhat.com/show_bug.cgi?id=1151559
+
+commit a3704bda41737263e8a547fb3d97ba818935d768
+Author: Marc-André Lureau <marcandre.lureau@redhat.com>
+Date:   Fri Aug 8 19:24:28 2014 +0200
+
+    drm: fail gracefuly on monitor resize
+    
+    If drmModeSetCrtc() failed, try to fallback to previous working
+    configuration.
+    
+    Related to:
+    https://bugzilla.redhat.com/show_bug.cgi?id=1127552
+
+commit 1df926cae94cbd9e677209fa164e38af9cbaeead
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Sep 15 11:25:14 2014 -0500
+
+    In XSpice audio, fully clear the data structure; silences valgrind warnings.
+
+commit 32512fc645286512c35a6da754ab1bc36be54f8f
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Sep 12 14:22:45 2014 -0500
+
+    When uploading a region, do not go outside the source image size.
+    
+    This problem was exposed (and probably only occurs) when using XSpice
+    in dfps mode with spice-html5, and resizing from larger to smaller.
+    The screen would be resized, but the update region would still attempt
+    to transmit any pending changes to the (now) truncated surface.  This
+    would often lead to a crash.
+
+commit f4fdad43dfb7eb45e7208e3cc867d3b6b93dacdb
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Sep 12 14:19:41 2014 -0500
+
+    Initialize the frame buffer used in dfps mode; this silences a number
+    of valgrind errors.
+
+commit 09144c43a2306db0615cf3564db67cf6b4c5f0a5
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Sep 19 10:34:26 2014 -0500
+
+    Tune the dfps region tracking to collapse to the bounding rectangle
+    if too many small, incremental, updates are provided.
+    
+    Attempting to use x11perf to measure performance revealed a fairly
+    serious weakness in the dfps code in that use case.  In between
+    fps ticks, the updated_region would grow to have thousands of
+    rectangles, which made processing extraordinarily slow.
+    
+    This patch provides a cap on the number of rectangles inside
+    a region; once it reaches the cap, we collapse the update_region
+    to just transmit the bounding rectangle instead.
+
+commit 1c29941d7a9fd2204daf29bdd530bf18216f1f91
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Sep 19 10:33:16 2014 -0500
+
+    Add helper functions for updating the boxes and regions; makes the
+    code a bit cleaner.
+
+commit 9ab3f1bcb970e1cec0865f0fafbcc88f8022f9e5
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Aug 22 10:07:34 2014 -0500
+
+    In XSpice mode, enable the ability to specify the various ram buffer sizes.
+    
+    Also adjust the mode selection to fit, and add a few larger modes.
+
+commit 539ca283380c197d4c3ba612ca90b26d1f696b01
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Fri Aug 22 09:45:49 2014 -0500
+
+    The display of the RAM size subtracts the frame buffer, but it has
+    already been subtracted in setting the num_pages field.
+
+commit c63b2fc540a844196f5f015853ca69f9b91e4fed
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Thu Aug 21 13:45:02 2014 -0500
+
+    Skip modes more precisely.
+
+commit fc0a006e4996bebd147216ffde184b4fda0f71bf
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Aug 18 13:38:09 2014 -0500
+
+    Free the region pointer as well; eliminates a memory leak in dfps mode.
+
+commit 6210f34e3570341e0b6318c3fc2e2cc2cf6e5d82
+Author: Alon Levy <alevy@redhat.com>
+Date:   Wed Jul 23 11:21:03 2014 +0300
+
+    Release 0.1.2
+    
+    Signed-off-by: Alon Levy <alevy@redhat.com>
+
+commit 76d82060dff80417cdc58de49acd72b9ce91bf4c
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Jun 9 16:08:13 2014 +0300
+
+    qxl_driver.c: fix compiler warning 'defined but not used' qxl_kernel_mode_enabled
+    
+    Signed-off-by: Alon Levy <alevy@redhat.com>
+
+commit cf16a40ebde42478a1edd5fbfe841f69b2c9c37f
+Author: Alon Levy <alevy@redhat.com>
+Date:   Wed Jun 25 14:53:14 2014 +0300
+
+    qxl_image.c: fix compilation break
+    
+    Since 3d511c30206bd8c9a207c436186a03af0bb02962 Xspice building is broken
+    due to undefined MAX_RELOCS when not building with XF86DRM_MODE.
+
+commit 17e2ee0d904f35d4fe756ca2d9cd100e15663018
+Author: Marc-André Lureau <marcandre.lureau@gmail.com>
+Date:   Wed Jul 2 12:22:46 2014 +0200
+
+    drm: restore cursor after resolution change
+    
+    The Spice server & qemu reset the cursor state when
+    changing resolution. Although X does restore the
+    cursor on framebuffer changes, it doesn't for crtc
+    config. Restoring the cursor here is the simplest
+    way to solve the "invisible cursor" after resolution
+    change bug with DRM driver.
+    
+    https://bugzilla.redhat.com/show_bug.cgi?id=1030531
+
+commit 3d511c30206bd8c9a207c436186a03af0bb02962
+Author: David Mansfield <spice@dm.cobite.com>
+Date:   Tue Jun 3 10:05:42 2014 -0400
+
+    Dynamically adjust chunk size to avoid command buffer overflow.
+    
+    The maximum number of "commands" that can be queued at once is
+    fixed at compile time at MAX_RELOCS. However, during the creation
+    of an image object in qxl_image_create(), the image is split into
+    commands of maximum size 512*512. For a large dual-head system,
+    it is easy to create an image for which the number of chunks will
+    result in an overflow of MAX_RELOCS number of "commands".
+    
+    Identify this scenario and dynamically increase the chunk size to
+    avoid the overflow, and the resulting assert() which crashes Xorg.
+    
+    Fixes: https://bugs.freedesktop.org/show_bug.cgi?id=79317
+    Signed-off-by: David Mansfield <spice@dm.cobite.com>
+
+commit cbe70e99136eca3f1eb00048e98ccad653897dd5
+Author: Hans de Goede <hdegoede@redhat.com>
+Date:   Wed Apr 23 17:50:41 2014 +0200
+
+    Add support for server managed fds
+    
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+
+commit a7115f636bc1054c350b7a6a9557ecb944188596
+Author: Hans de Goede <hdegoede@redhat.com>
+Date:   Wed Apr 23 17:35:24 2014 +0200
+
+    Fix qxl_driver_func to adhere to the API
+    
+    The driverFunc callback MUST check the passed in operand and only return
+    TRUE it if understands it and has handled it. It must NOT blindly assume the
+    op is GET_REQUIRED_HW_INTERFACES.
+    
+    While at also always define driverFunc, and welcome qxl to the 21st century.
+    
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 463084aa8e73fbafb8dc404e2bd458548d04e9dc
+Author: Hans de Goede <hdegoede@redhat.com>
+Date:   Wed Apr 23 17:28:28 2014 +0200
+
+    Add support for XSERVER_PLATFORM_BUS
+    
+    This is a preparation patch for adding support for server managed fds.
+    
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 9123b177eeeae53c5faf106eaf6d0f811efd6186
+Author: longguang.yue <longguang.yue@gmail.com>
+Date:   Thu Mar 27 00:21:05 2014 +0800
+
+    fix memory leak when alloc uxa
+
+commit 9971a5ce9007c23fffb4221cbff7c125660929bd
+Author: Jeremy White <jwhite@codeweavers.com>
+Date:   Mon Mar 31 09:53:24 2014 -0500
+
+    Make use of the new playback rate interface, if available.
+
+commit e543c6ba78d0be27d29a4f50a6641208161556c2
+Author: Dave Airlie <airlied@redhat.com>
+Date:   Fri Feb 28 11:59:15 2014 +1000
+
+    qxl: fix set cursor2 support for older kernel
+    
+    On older kernels we were getting -EINVAL not -ENOSYS,
+    so we'd never render the cursor, gnome continuous uses a 3.10
+    kernel.
+    
+    Signed-off-by: Dave Airlie <airlied@redhat.com>
+
+commit 9f9709b3dcdf2c8475d67cb42c8765ce17165b8b
+Author: Alon Levy <alevy@redhat.com>
+Date:   Sun Oct 27 12:01:46 2013 +0200
+
+    Xspice: add better doc strings for audio & vdagent
+    
+    Signed-off-by: Alon Levy <alevy@redhat.com>
+
+commit d6066e77c12f6a6273b7b57c3d3a37df2be9a0b4
+Author: Alon Levy <alevy@redhat.com>
+Date:   Sun Oct 27 11:50:28 2013 +0200
+
+    spiceqxl_util.[hc]: add copyright & license headers
+    
+    Signed-off-by: Alon Levy <alevy@redhat.com>
+
+commit c1b698baf3a5d653854c69a12f2d3cb76991b406
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 18:26:12 2013 +0300
+
+    Xspice: cleanup vdagent files
+
+commit eb437149e26c995aac780dc8bb67ea41275d0429
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 18:26:02 2013 +0300
+
+    Xspice: fix cleanup when some processes are already dead
+
+commit a778d9da649b16098ab3721f135bd7508bc32167
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 18:25:47 2013 +0300
+
+    Xspice: cleanup non regular files too
+
+commit e1b4022a0d2c598e5d5dead8d770f5e7d0de5a0c
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 18:22:15 2013 +0300
+
+    xspice: chown both files used by vdagent for suid Xorg case
+    
+    When running a suid Xorg mkfifo and bind produce files owned by root.
+    Change the ownership so that the user launched vdagent & vdagentd can
+    write to them. This also makes it easier to cleanup the files from the
+    Xspice process that is not running as root (and is launching both
+    vdagent & vdagentd, hence they are not running as root either).
+    
+    The patch adds two new parameters, uid and gid of the agent used files,
+    namely the virtio unix domain socket and the uinput fifo.
+
+commit 5f23159d86e94d599301581f25a6e13fe3a050b9
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 11:57:43 2013 +0300
+
+    spiceqxl_spice_server: no need to call spice_server_set_noauth twice
+
+commit 1b4c1dd47e7876f85a5e6338f3561e718cb39929
+Author: Alon Levy <alevy@redhat.com>
+Date:   Mon Oct 21 11:21:44 2013 +0300
+
+    tests/xspice_util.py: fix hardcoded port
+
 commit 516c07ea582db00aac75133e5bbd8f8647900bd7
 Author: Alon Levy <alevy@redhat.com>
 Date:   Sun Oct 20 18:39:14 2013 +0300
@@ -1259,17 +2362,17 @@ Date:   Tue May 29 17:24:50 2012 +0300
     xterms = []
     
     def kill_all():
-    	print "killing xterms"
-    	for x in xterms:
-    		x.kill()
-    	del xterms[:]
+            print "killing xterms"
+            for x in xterms:
+                    x.kill()
+            del xterms[:]
     
     atexit.register(kill_all)
     while True:
-    	for i in range(10):
-    		xterms.append(subprocess.Popen(['xterm', '+u8']))
-    	time.sleep(1)
-    	kill_all()
+            for i in range(10):
+                    xterms.append(subprocess.Popen(['xterm', '+u8']))
+            time.sleep(1)
+            kill_all()
     
     ============= chvt_test_helper ============
     XPID=`pgrep Xorg`
@@ -2372,7 +3475,7 @@ Date:   Fri Jul 15 11:00:51 2011 -0400
     
     Conflicts:
     
-    	src/qxl_driver.c
+            src/qxl_driver.c
 
 commit 9b915fab9d29f66b825d7a46e158f026f10a41dc
 Author: Søren Sandmann Pedersen <ssp@redhat.com>
@@ -3802,7 +4905,7 @@ Date:   Tue Feb 24 10:10:14 2009 -0500
     
     Conflicts:
     
-    	src/qxl_driver.c
+            src/qxl_driver.c
 
 commit 4d0f59c148db48dbbacedd78c73f24874535a6bf
 Author: Søren Sandmann Pedersen <ssp@redhat.com>

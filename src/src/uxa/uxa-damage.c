@@ -27,12 +27,20 @@
 #include <stdlib.h>
 #include "uxa-priv.h"
 
+#include    <dixfontstr.h>
+#include    <gcstruct.h>
+#include    <picturestr.h>
+#include    <scrnintstr.h>
+#include    <windowstr.h>
 #include    <X11/X.h>
-#include    "scrnintstr.h"
-#include    "windowstr.h"
-#include    "dixfontstr.h"
-#include    "gcstruct.h"
-#include    "picturestr.h"
+#include    <X11/fonts/font.h>
+#include    <X11/fonts/fontstruct.h>
+#ifdef HAVE_XFONT2
+#include    <X11/fonts/libxfont2.h>
+#else
+#include    <X11/fonts/fontutil.h>
+#endif
+
 #include    "uxa-damage.h"
 
 typedef struct _damageGCPriv {
@@ -943,8 +951,12 @@ uxa_damage_chars (RegionPtr	region,
 {
     ExtentInfoRec   extents;
     BoxRec	    box;
-    
+
+#ifdef HAVE_XFONT2
+    xfont2_query_glyph_extents(font, charinfo, n, &extents);
+#else
     QueryGlyphExtents(font, charinfo, n, &extents);
+#endif
     if (imageblt)
     {
 	if (extents.overallWidth > extents.overallRight)
